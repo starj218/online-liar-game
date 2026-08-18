@@ -433,7 +433,10 @@ function completeTurn(roomId,speakerId,text,timedOut=false){
     io.to(r.id).emit("speechBubble",{
       player:pub(speaker),
       text,
-      timedOut
+      timedOut,
+      round:r.currentRound,
+      totalRounds:r.totalRounds,
+      question:r.selectedMode==="question"?r.currentQuestion:null
     });
   }
 
