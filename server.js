@@ -85,7 +85,7 @@ function broadcastQueue(size){
 
 function clearTimers(r){
   if(!r)return;
-  for(const key of ["modeResultTimer","countdownTimer","readyTimer","restartTimer","turnTimer","shuffleTimer","nextTurnTimer","finalStatementTimer","voteNextTimer"]){
+  for(const key of ["modeResultTimer","countdownTimer","readyTimer","restartTimer","turnTimer","shuffleTimer","nextTurnTimer","finalStatementTimer","voteNextTimer","guessTimer","rematchTimer"]){
     if(r[key]){
       clearTimeout(r[key]);
       clearInterval(r[key]);
@@ -172,7 +172,8 @@ function tryMatch(size){
     turnOrder:[],totalRounds:0,currentRound:0,turnIndex:0,currentTurnId:null,
     currentQuestion:null,turnDeadline:null,turnTimer:null,shuffleTimer:null,nextTurnTimer:null,
     voteStage:0,voteCandidates:[],liarVotes:new Map(),finalStatementQueue:[],finalStatementIndex:0,
-    finalStatementCurrentId:null,finalStatementTimer:null,voteNextTimer:null
+    finalStatementCurrentId:null,finalStatementTimer:null,voteNextTimer:null,
+    guessTimer:null,rematchTimer:null,lastWinner:null
   };
   rooms.set(id,r);
 
@@ -683,19 +684,162 @@ function completeFinalStatement(roomId,speakerId,text,timedOut=false){
   },1200);
 }
 
+
+function normalizeGuess(text){
+  return String(text||"")
+    .normalize("NFKC")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g," ");
+}
+
 function resolveLiarVote(r,targetId){
   if(!r)return;
 
   const target=players.get(targetId);
-
   if(!target)return;
 
   r.state="voteResolved";
 
+  const caughtLiar=
+    targetId===r.liarId;
+
   io.to(r.id).emit("liarVoteResolved",{
     target:pub(target),
-    caughtLiar:targetId===r.liarId
+    caughtLiar
   });
+
+  if(!caughtLiar){
+    r.voteNextTimer=setTimeout(()=>{
+      r.voteNextTimer=null;
+      finishGame(r,"liar","wrongVote");
+    },1800);
+
+    return;
+  }
+
+  r.voteNextTimer=setTimeout(()=>{
+    r.voteNextTimer=null;
+    startLiarGuess(r);
+  },1800);
+}
+
+function startLiarGuess(r){
+  if(!r)return;
+
+  if(r.players.size<4){
+    abortIfTooSmall(r);
+    return;
+  }
+
+  const liar=players.get(r.liarId);
+
+  if(!liar){
+    finishGame(r,"citizen","liarMissing");
+    return;
+  }
+
+  r.state="liarGuess";
+  r.turnDeadline=Date.now()+20000;
+
+  io.to(r.id).emit("liarGuessStart",{
+    liar:pub(liar),
+    deadline:r.turnDeadline,
+    maxLength:30
+  });
+
+  r.guessTimer=setTimeout(()=>{
+    r.guessTimer=null;
+    finishGame(r,"citizen","guessTimeout");
+  },20000);
+}
+
+function finishGame(r,winner,reason,guessText=null){
+  if(!r)return;
+
+  if(r.guessTimer){
+    clearTimeout(r.guessTimer);
+    r.guessTimer=null;
+  }
+
+  r.state="result";
+  r.lastWinner=winner;
+  r.turnDeadline=null;
+
+  const liar=players.get(r.liarId);
+
+  const [
+    category,
+    citizenWord,
+    liarWord
+  ]=r.wordSet||["","",""];
+
+  io.to(r.id).emit("gameResult",{
+    winner,
+    reason,
+    guessText,
+    liar:liar?pub(liar):null,
+    category,
+    citizenWord,
+    liarWord:
+      r.selectedMode==="fool"
+        ? liarWord
+        : null,
+    selectedMode:r.selectedMode,
+    rematchSeconds:6
+  });
+
+  r.rematchTimer=setTimeout(()=>{
+    r.rematchTimer=null;
+
+    const latest=rooms.get(r.id);
+
+    if(!latest)return;
+
+    if(latest.players.size<4){
+      abortIfTooSmall(latest);
+      return;
+    }
+
+    resetRoundData(latest);
+
+    io.to(latest.id).emit("rematchStarting",{
+      message:"같은 멤버로 다음 게임을 시작합니다."
+    });
+
+    startModeVote(latest);
+  },6000);
+}
+
+function resetRoundData(r){
+  clearTimers(r);
+
+  r.modeVotes=new Map();
+  r.selectedMode=null;
+
+  r.readyPlayers=new Set();
+
+  r.liarId=null;
+  r.wordSet=null;
+  r.roleDeadline=null;
+
+  r.turnOrder=[];
+  r.totalRounds=0;
+  r.currentRound=0;
+  r.turnIndex=0;
+  r.currentTurnId=null;
+  r.currentQuestion=null;
+  r.turnDeadline=null;
+
+  r.voteStage=0;
+  r.voteCandidates=[];
+  r.liarVotes=new Map();
+
+  r.finalStatementQueue=[];
+  r.finalStatementIndex=0;
+  r.finalStatementCurrentId=null;
+
+  r.lastWinner=null;
 }
 
 function removeFromGameplayOrder(r,id){
@@ -806,7 +950,8 @@ io.on("connection",socket=>{
         turnOrder:[],totalRounds:0,currentRound:0,turnIndex:0,currentTurnId:null,
         currentQuestion:null,turnDeadline:null,turnTimer:null,shuffleTimer:null,nextTurnTimer:null,
         voteStage:0,voteCandidates:[],liarVotes:new Map(),finalStatementQueue:[],finalStatementIndex:0,
-        finalStatementCurrentId:null,finalStatementTimer:null,voteNextTimer:null
+        finalStatementCurrentId:null,finalStatementTimer:null,voteNextTimer:null,
+        guessTimer:null,rematchTimer:null,lastWinner:null
       };
       rooms.set(id,r);
     }
@@ -1016,6 +1161,69 @@ io.on("connection",socket=>{
       socket.id,
       text,
       false
+    );
+  });
+
+
+  socket.on("submitLiarGuess",(raw,cb)=>{
+    const p=players.get(socket.id);
+    const r=p?.roomId?rooms.get(p.roomId):null;
+
+    if(
+      !r ||
+      r.state!=="liarGuess"
+    ){
+      return cb?.({
+        success:false,
+        message:"현재는 제시어 추측 시간이 아닙니다."
+      });
+    }
+
+    if(socket.id!==r.liarId){
+      return cb?.({
+        success:false,
+        message:"라이어만 제시어를 추측할 수 있습니다."
+      });
+    }
+
+    const guess=String(raw||"").trim();
+
+    if(!guess){
+      return cb?.({
+        success:false,
+        message:"제시어를 입력해주세요."
+      });
+    }
+
+    if(guess.length>30){
+      return cb?.({
+        success:false,
+        message:"입력은 최대 30자까지 가능합니다."
+      });
+    }
+
+    const citizenWord=
+      r.wordSet?.[1]||"";
+
+    const correct=
+      normalizeGuess(guess)===
+      normalizeGuess(citizenWord);
+
+    cb?.({
+      success:true,
+      correct
+    });
+
+    if(r.guessTimer){
+      clearTimeout(r.guessTimer);
+      r.guessTimer=null;
+    }
+
+    finishGame(
+      r,
+      correct?"liar":"citizen",
+      correct?"guessCorrect":"guessWrong",
+      guess
     );
   });
 
