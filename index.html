@@ -548,6 +548,143 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
   </div>
 </div>
 
+
+<!-- =====================================================
+     6단계: 라이어 투표
+===================================================== -->
+
+<section id="liarVoteScreen" class="screen hidden">
+  <div class="liar-vote-card">
+    <h1>🗳️ 라이어 투표</h1>
+
+    <p id="liarVoteSubtitle" class="sub">
+      라이어라고 생각하는 사람을 선택하세요.
+    </p>
+
+    <div
+      id="voteCandidateGrid"
+      class="vote-candidate-grid"
+    ></div>
+
+    <div
+      id="liarVoteProgress"
+      class="vote-progress-large"
+    >
+      투표 완료 0 / 0
+    </div>
+
+    <p id="liarVoteMessage" class="sub">
+      자신의 이름에는 투표할 수 없습니다.
+    </p>
+  </div>
+</section>
+
+
+<!-- =====================================================
+     6단계: 동점 안내
+===================================================== -->
+
+<section id="tieStageScreen" class="screen hidden">
+  <div class="tie-stage-card">
+
+    <h1 id="tieStageTitle">
+      ⚖️ 동점!
+    </h1>
+
+    <p id="tieStageMessage"></p>
+
+    <div
+      id="tieCandidateNames"
+      class="tie-candidates"
+    ></div>
+
+  </div>
+</section>
+
+
+<!-- =====================================================
+     6단계: 최후의 발언
+===================================================== -->
+
+<section id="finalStatementScreen" class="screen hidden">
+  <div class="tie-stage-card">
+
+    <h1>
+      🎤 최후의 발언
+    </h1>
+
+    <p
+      id="finalStatementOrder"
+      class="sub"
+    ></p>
+
+    <h2 id="finalStatementName"></h2>
+
+    <div
+      id="finalStatementTimer"
+      class="turn-timer"
+    >
+      20
+    </div>
+
+    <p class="sub">
+      동점 후보들이 한 명씩 마지막 발언을 합니다.
+    </p>
+
+  </div>
+
+  <div
+    id="finalStatementInputWrap"
+    class="final-statement-input hidden"
+  >
+    <div class="final-statement-row">
+
+      <input
+        id="finalStatementInput"
+        maxlength="30"
+        placeholder="최대 30자"
+        autocomplete="off"
+      >
+
+      <button onclick="submitFinalStatement()">
+        발언
+      </button>
+
+    </div>
+
+    <div
+      id="finalStatementCount"
+      class="final-statement-count"
+    >
+      0 / 30
+    </div>
+  </div>
+</section>
+
+
+<!-- =====================================================
+     6단계: 최종 지목
+===================================================== -->
+
+<section id="voteResolvedScreen" class="screen hidden">
+  <div class="vote-resolved-card">
+
+    <h1>
+      🔎 최종 지목
+    </h1>
+
+    <h2 id="resolvedPlayerName"></h2>
+
+    <p id="resolvedResultText"></p>
+
+    <p class="sub">
+      다음 단계에서 라이어의 마지막 제시어 추측과
+      최종 승패 처리를 연결합니다.
+    </p>
+
+  </div>
+</section>
+
 <div id="myInfoBox" class="mini hidden">
   <h4>🔐 내 정보</h4>
   <div id="miniRoleLine"></div>
