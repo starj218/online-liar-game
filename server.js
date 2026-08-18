@@ -25,17 +25,10 @@ app.get("/", (req, res) => {
 // 서버 데이터
 // =====================================================
 
-// 접속한 플레이어
-// socket.id -> player
 const players = new Map();
 
-
-// 방
-// roomId -> room
 const rooms = new Map();
 
-
-// 랜덤 매칭 대기열
 const matchmakingQueues = {
     4: [],
     5: [],
@@ -46,11 +39,28 @@ const matchmakingQueues = {
 
 
 // =====================================================
-// 유틸
+// 기본 함수
 // =====================================================
 
 function getPlayer(socketId) {
     return players.get(socketId);
+}
+
+
+function publicPlayer(player) {
+    return {
+        id: player.id,
+        nickname: player.nickname
+    };
+}
+
+
+function normalizeRoomCode(code) {
+
+    return String(code || "")
+        .trim()
+        .toUpperCase();
+
 }
 
 
@@ -68,27 +78,8 @@ function makeRandomRoomId() {
 }
 
 
-function normalizeRoomCode(code) {
-
-    return String(code || "")
-        .trim()
-        .toUpperCase();
-
-}
-
-
-function publicPlayer(player) {
-
-    return {
-        id: player.id,
-        nickname: player.nickname
-    };
-
-}
-
-
 // =====================================================
-// 전체 온라인 플레이어 목록
+// 전체 온라인 플레이어
 // =====================================================
 
 function broadcastOnlinePlayers() {
@@ -97,19 +88,31 @@ function broadcastOnlinePlayers() {
         [...players.values()]
             .map(publicPlayer);
 
-
-    io.emit("onlinePlayerList", list);
+    io.emit(
+        "onlinePlayerList",
+        list
+    );
 
 }
 
 
 // =====================================================
-// 방 정보 보내기
+// 방 데이터
 // =====================================================
+
+function getRoomPlayers(room) {
+
+    return [...room.players]
+        .map(id => players.get(id))
+        .filter(Boolean);
+
+}
+
 
 function broadcastRoom(roomId) {
 
-    const room = rooms.get(roomId);
+    const room =
+        rooms.get(roomId);
 
     if (!room) {
         return;
@@ -117,69 +120,71 @@ function broadcastRoom(roomId) {
 
 
     const roomPlayers =
-        [...room.players]
-            .map(id => players.get(id))
-            .filter(Boolean)
+        getRoomPlayers(room)
             .map(publicPlayer);
-
-
-    const payload = {
-
-        id: room.id,
-
-        type: room.type,
-
-        code: room.code || null,
-
-        targetSize: room.targetSize || null,
-
-        players: roomPlayers,
-
-        count: roomPlayers.length,
-
-        canStart:
-            room.type === "code" &&
-            roomPlayers.length >= 4 &&
-            roomPlayers.length <= 8
-
-    };
 
 
     io.to(roomId).emit(
         "roomUpdate",
-        payload
+        {
+            id: room.id,
+
+            type: room.type,
+
+            code: room.code || null,
+
+            targetSize:
+                room.targetSize || null,
+
+            players: roomPlayers,
+
+            count:
+                roomPlayers.length,
+
+            state:
+                room.state,
+
+            canStart:
+                room.type === "code" &&
+                room.state === "waiting" &&
+                roomPlayers.length >= 4 &&
+                roomPlayers.length <= 8
+        }
     );
 
 }
 
 
 // =====================================================
-// 매칭 대기열 정보
+// 매칭 대기열 업데이트
 // =====================================================
+
+function cleanQueue(targetSize) {
+
+    matchmakingQueues[targetSize] =
+        matchmakingQueues[targetSize]
+            .filter(id => {
+
+                const player =
+                    players.get(id);
+
+                return (
+                    player &&
+                    player.status === "queue" &&
+                    player.queueSize === targetSize
+                );
+
+            });
+
+}
+
 
 function broadcastQueue(targetSize) {
 
-    const queue =
-        matchmakingQueues[targetSize];
-
+    cleanQueue(targetSize);
 
     const validIds =
-        queue.filter(id => {
-
-            const player =
-                players.get(id);
-
-            return (
-                player &&
-                player.status === "queue" &&
-                player.queueSize === targetSize
-            );
-
-        });
-
-
-    matchmakingQueues[targetSize] =
-        validIds;
+        matchmakingQueues[targetSize];
 
 
     const queuePlayers =
@@ -195,8 +200,12 @@ function broadcastQueue(targetSize) {
             "matchmakingUpdate",
             {
                 targetSize,
-                count: validIds.length,
-                players: queuePlayers
+
+                count:
+                    validIds.length,
+
+                players:
+                    queuePlayers
             }
         );
 
@@ -206,7 +215,121 @@ function broadcastQueue(targetSize) {
 
 
 // =====================================================
-// 플레이어를 현재 상태에서 제거
+// 방 타이머 제거
+// =====================================================
+
+function clearRoomTimers(room) {
+
+    if (!room) {
+        return;
+    }
+
+
+    if (room.modeResultTimer) {
+
+        clearTimeout(
+            room.modeResultTimer
+        );
+
+        room.modeResultTimer = null;
+
+    }
+
+
+    if (room.countdownInterval) {
+
+        clearInterval(
+            room.countdownInterval
+        );
+
+        room.countdownInterval = null;
+
+    }
+
+}
+
+
+// =====================================================
+// 인원 부족 시 방 종료
+// =====================================================
+
+function abortRoomIfTooSmall(room) {
+
+    if (!room) {
+        return false;
+    }
+
+
+    // 게임 시작 전 일반 대기방은
+    // 1~3명이 있어도 유지 가능
+    if (
+        room.state === "waiting"
+    ) {
+        return false;
+    }
+
+
+    const validPlayers =
+        getRoomPlayers(room);
+
+
+    if (
+        validPlayers.length >= 4
+    ) {
+        return false;
+    }
+
+
+    clearRoomTimers(room);
+
+
+    io.to(room.id).emit(
+        "roomAborted",
+        {
+            message:
+                "플레이어가 3명 이하로 줄어 게임을 계속할 수 없습니다."
+        }
+    );
+
+
+    validPlayers.forEach(player => {
+
+        player.status = "lobby";
+
+        player.roomId = null;
+
+        player.queueSize = null;
+
+
+        const socket =
+            io.sockets.sockets.get(
+                player.id
+            );
+
+
+        if (socket) {
+
+            socket.leave(
+                room.id
+            );
+
+        }
+
+    });
+
+
+    rooms.delete(
+        room.id
+    );
+
+
+    return true;
+
+}
+
+
+// =====================================================
+// 현재 상태에서 플레이어 제거
 // =====================================================
 
 function removePlayerFromCurrentState(socketId) {
@@ -221,7 +344,7 @@ function removePlayerFromCurrentState(socketId) {
 
 
     // -----------------------------------------
-    // 랜덤 매칭 대기 중이었다면 제거
+    // 랜덤 매칭 대기열
     // -----------------------------------------
 
     if (
@@ -240,17 +363,22 @@ function removePlayerFromCurrentState(socketId) {
                 );
 
 
-        player.status = "lobby";
-        player.queueSize = null;
+        player.status =
+            "lobby";
+
+        player.queueSize =
+            null;
 
 
-        broadcastQueue(size);
+        broadcastQueue(
+            size
+        );
 
     }
 
 
     // -----------------------------------------
-    // 방에 있었다면 제거
+    // 방
     // -----------------------------------------
 
     if (
@@ -271,6 +399,15 @@ function removePlayerFromCurrentState(socketId) {
         );
 
 
+        if (room.modeVotes) {
+
+            room.modeVotes.delete(
+                socketId
+            );
+
+        }
+
+
         const socket =
             io.sockets.sockets.get(
                 socketId
@@ -278,26 +415,64 @@ function removePlayerFromCurrentState(socketId) {
 
 
         if (socket) {
-            socket.leave(oldRoomId);
-        }
 
-
-        player.roomId = null;
-        player.status = "lobby";
-
-
-        if (room.players.size === 0) {
-
-            rooms.delete(
+            socket.leave(
                 oldRoomId
             );
 
         }
 
-        else {
 
-            broadcastRoom(
+        player.roomId =
+            null;
+
+        player.status =
+            "lobby";
+
+
+        if (
+            room.players.size === 0
+        ) {
+
+            clearRoomTimers(room);
+
+            rooms.delete(
                 oldRoomId
+            );
+
+            return;
+
+        }
+
+
+        if (
+            abortRoomIfTooSmall(
+                room
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        broadcastRoom(
+            oldRoomId
+        );
+
+
+        if (
+            room.state ===
+            "modeVote"
+        ) {
+
+            broadcastModeVotes(
+                room
+            );
+
+
+            checkModeVotingFinished(
+                room
             );
 
         }
@@ -308,38 +483,20 @@ function removePlayerFromCurrentState(socketId) {
 
 
 // =====================================================
-// 랜덤 매칭 시도
+// 랜덤 매칭
 // =====================================================
 
 function tryMakeMatch(targetSize) {
+
+    cleanQueue(targetSize);
+
 
     const queue =
         matchmakingQueues[targetSize];
 
 
-    // 유효하지 않은 사용자 제거
-    matchmakingQueues[targetSize] =
-        queue.filter(id => {
-
-            const player =
-                players.get(id);
-
-            return (
-                player &&
-                player.status === "queue" &&
-                player.queueSize === targetSize
-            );
-
-        });
-
-
-    const cleanQueue =
-        matchmakingQueues[targetSize];
-
-
-    // 아직 인원 부족
     if (
-        cleanQueue.length <
+        queue.length <
         targetSize
     ) {
 
@@ -348,12 +505,12 @@ function tryMakeMatch(targetSize) {
         );
 
         return;
+
     }
 
 
-    // 앞에서부터 목표 인원수만큼 선택
     const matchedIds =
-        cleanQueue.splice(
+        queue.splice(
             0,
             targetSize
         );
@@ -365,19 +522,36 @@ function tryMakeMatch(targetSize) {
 
     const room = {
 
-        id: roomId,
+        id:
+            roomId,
 
-        type: "random",
+        type:
+            "random",
 
-        code: null,
+        code:
+            null,
 
         targetSize,
 
         players:
-            new Set(matchedIds),
+            new Set(
+                matchedIds
+            ),
 
         state:
-            "matched"
+            "matched",
+
+        modeVotes:
+            new Map(),
+
+        selectedMode:
+            null,
+
+        modeResultTimer:
+            null,
+
+        countdownInterval:
+            null
 
     };
 
@@ -392,7 +566,9 @@ function tryMakeMatch(targetSize) {
         socketId => {
 
             const player =
-                players.get(socketId);
+                players.get(
+                    socketId
+                );
 
 
             if (!player) {
@@ -429,25 +605,19 @@ function tryMakeMatch(targetSize) {
 
 
     const roomPlayers =
-        matchedIds
-            .map(id =>
-                players.get(id)
-            )
-            .filter(Boolean)
+        getRoomPlayers(room)
             .map(publicPlayer);
 
 
     io.to(roomId).emit(
         "randomMatched",
         {
-
             roomId,
 
             targetSize,
 
             players:
                 roomPlayers
-
         }
     );
 
@@ -457,13 +627,39 @@ function tryMakeMatch(targetSize) {
     );
 
 
-    // 대기열에 남은 사람들에게 업데이트
+    // 매칭 성공 화면을 잠시 보여준 뒤
+    // 자동으로 게임 유형 투표
+    setTimeout(
+        () => {
+
+            const latestRoom =
+                rooms.get(
+                    roomId
+                );
+
+
+            if (
+                latestRoom &&
+                latestRoom.players.size >= 4 &&
+                latestRoom.state === "matched"
+            ) {
+
+                startModeVoting(
+                    latestRoom
+                );
+
+            }
+
+        },
+        1800
+    );
+
+
     broadcastQueue(
         targetSize
     );
 
 
-    // 혹시 남은 인원도 또 충분하다면 추가 매칭
     if (
         matchmakingQueues[targetSize]
             .length >=
@@ -475,6 +671,405 @@ function tryMakeMatch(targetSize) {
         );
 
     }
+
+}
+
+
+// =====================================================
+// 게임 유형 투표 시작
+// =====================================================
+
+function startModeVoting(room) {
+
+    if (!room) {
+        return;
+    }
+
+
+    if (
+        room.players.size < 4
+    ) {
+
+        abortRoomIfTooSmall(
+            room
+        );
+
+        return;
+
+    }
+
+
+    clearRoomTimers(room);
+
+
+    room.state =
+        "modeVote";
+
+    room.modeVotes =
+        new Map();
+
+    room.selectedMode =
+        null;
+
+
+    io.to(room.id).emit(
+        "modeVoteStart",
+        {
+            totalPlayers:
+                room.players.size
+        }
+    );
+
+
+    broadcastModeVotes(
+        room
+    );
+
+}
+
+
+// =====================================================
+// 게임 유형 투표 상황
+// =====================================================
+
+function getModeVoteCounts(room) {
+
+    const counts = {
+        basic: 0,
+        question: 0,
+        fool: 0
+    };
+
+
+    for (
+        const mode
+        of room.modeVotes.values()
+    ) {
+
+        if (
+            Object.prototype
+                .hasOwnProperty
+                .call(
+                    counts,
+                    mode
+                )
+        ) {
+
+            counts[mode]++;
+
+        }
+
+    }
+
+
+    return counts;
+
+}
+
+
+function broadcastModeVotes(room) {
+
+    if (!room) {
+        return;
+    }
+
+
+    const counts =
+        getModeVoteCounts(
+            room
+        );
+
+
+    io.to(room.id).emit(
+        "modeVoteUpdate",
+        {
+            counts,
+
+            voted:
+                room.modeVotes.size,
+
+            total:
+                room.players.size
+        }
+    );
+
+}
+
+
+// =====================================================
+// 투표 완료 확인
+// =====================================================
+
+function checkModeVotingFinished(room) {
+
+    if (
+        !room ||
+        room.state !== "modeVote"
+    ) {
+        return;
+    }
+
+
+    const playerCount =
+        room.players.size;
+
+
+    if (
+        playerCount < 4
+    ) {
+
+        abortRoomIfTooSmall(
+            room
+        );
+
+        return;
+
+    }
+
+
+    if (
+        room.modeVotes.size <
+        playerCount
+    ) {
+
+        return;
+
+    }
+
+
+    finishModeVoting(
+        room
+    );
+
+}
+
+
+// =====================================================
+// 게임 유형 결정
+// =====================================================
+
+function finishModeVoting(room) {
+
+    if (
+        !room ||
+        room.state !== "modeVote"
+    ) {
+        return;
+    }
+
+
+    const counts =
+        getModeVoteCounts(
+            room
+        );
+
+
+    const maxVotes =
+        Math.max(
+            counts.basic,
+            counts.question,
+            counts.fool
+        );
+
+
+    const topModes =
+        Object.keys(
+            counts
+        ).filter(
+            mode =>
+                counts[mode] ===
+                maxVotes
+        );
+
+
+    const selectedMode =
+        topModes[
+            Math.floor(
+                Math.random() *
+                topModes.length
+            )
+        ];
+
+
+    room.selectedMode =
+        selectedMode;
+
+    room.state =
+        "modeResult";
+
+
+    io.to(room.id).emit(
+        "modeVoteResult",
+        {
+            selectedMode,
+
+            counts,
+
+            tied:
+                topModes.length > 1,
+
+            tiedModes:
+                topModes
+        }
+    );
+
+
+    // 결과를 잠시 보여준 뒤
+    // 5초 카운트다운
+    room.modeResultTimer =
+        setTimeout(
+            () => {
+
+                startGameCountdown(
+                    room.id
+                );
+
+            },
+            2500
+        );
+
+}
+
+
+// =====================================================
+// 5초 카운트다운
+// =====================================================
+
+function startGameCountdown(roomId) {
+
+    const room =
+        rooms.get(
+            roomId
+        );
+
+
+    if (!room) {
+        return;
+    }
+
+
+    if (
+        room.players.size < 4
+    ) {
+
+        abortRoomIfTooSmall(
+            room
+        );
+
+        return;
+
+    }
+
+
+    room.state =
+        "countdown";
+
+
+    let seconds =
+        5;
+
+
+    io.to(room.id).emit(
+        "gameCountdownStart",
+        {
+            seconds,
+
+            selectedMode:
+                room.selectedMode
+        }
+    );
+
+
+    room.countdownInterval =
+        setInterval(
+            () => {
+
+                const latestRoom =
+                    rooms.get(
+                        roomId
+                    );
+
+
+                if (!latestRoom) {
+
+                    clearInterval(
+                        room.countdownInterval
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    latestRoom.players.size < 4
+                ) {
+
+                    clearInterval(
+                        latestRoom.countdownInterval
+                    );
+
+                    latestRoom.countdownInterval =
+                        null;
+
+
+                    abortRoomIfTooSmall(
+                        latestRoom
+                    );
+
+                    return;
+
+                }
+
+
+                seconds--;
+
+
+                if (
+                    seconds <= 0
+                ) {
+
+                    clearInterval(
+                        latestRoom.countdownInterval
+                    );
+
+
+                    latestRoom.countdownInterval =
+                        null;
+
+
+                    latestRoom.state =
+                        "roleStage";
+
+
+                    io.to(
+                        latestRoom.id
+                    ).emit(
+                        "roleStagePlaceholder",
+                        {
+                            selectedMode:
+                                latestRoom.selectedMode
+                        }
+                    );
+
+
+                    return;
+
+                }
+
+
+                io.to(
+                    latestRoom.id
+                ).emit(
+                    "gameCountdownTick",
+                    {
+                        seconds
+                    }
+                );
+
+            },
+            1000
+        );
 
 }
 
@@ -494,7 +1089,7 @@ io.on(
 
 
         // =================================================
-        // 닉네임으로 입장
+        // 닉네임 입장
         // =================================================
 
         socket.on(
@@ -517,6 +1112,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "닉네임은 2~10자로 입력해주세요."
                     });
@@ -540,6 +1136,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "이미 사용 중인 닉네임입니다."
                     });
@@ -551,7 +1148,6 @@ io.on(
                 players.set(
                     socket.id,
                     {
-
                         id:
                             socket.id,
 
@@ -565,7 +1161,6 @@ io.on(
 
                         queueSize:
                             null
-
                     }
                 );
 
@@ -603,6 +1198,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "먼저 닉네임으로 입장해주세요."
                     });
@@ -624,6 +1220,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "방 코드는 영문과 숫자로 최대 8자까지 입력해주세요."
                     });
@@ -638,7 +1235,8 @@ io.on(
 
 
                 const roomId =
-                    "CODE_" + code;
+                    "CODE_" +
+                    code;
 
 
                 let room =
@@ -650,7 +1248,6 @@ io.on(
                 if (!room) {
 
                     room = {
-
                         id:
                             roomId,
 
@@ -666,8 +1263,19 @@ io.on(
                             new Set(),
 
                         state:
-                            "waiting"
+                            "waiting",
 
+                        modeVotes:
+                            new Map(),
+
+                        selectedMode:
+                            null,
+
+                        modeResultTimer:
+                            null,
+
+                        countdownInterval:
+                            null
                     };
 
 
@@ -679,6 +1287,23 @@ io.on(
                 }
 
 
+                // 이미 게임이 시작된 방
+                if (
+                    room.state !==
+                    "waiting"
+                ) {
+
+                    callback({
+                        success: false,
+
+                        message:
+                            "이미 게임이 시작된 방입니다."
+                    });
+
+                    return;
+                }
+
+
                 if (
                     room.players.size >=
                     8
@@ -686,6 +1311,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "이 방은 이미 8명으로 가득 찼습니다."
                     });
@@ -729,7 +1355,7 @@ io.on(
 
 
         // =================================================
-        // 랜덤 매칭 시작
+        // 랜덤 매칭
         // =================================================
 
         socket.on(
@@ -755,6 +1381,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "먼저 닉네임으로 입장해주세요."
                     });
@@ -772,6 +1399,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "잘못된 매칭 인원입니다."
                     });
@@ -954,6 +1582,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "현재 방에 들어가 있지 않습니다."
                     });
@@ -972,6 +1601,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "방을 찾을 수 없습니다."
                     });
@@ -987,8 +1617,25 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
-                            "랜덤 매칭방은 자동으로 게임이 시작됩니다."
+                            "랜덤 매칭방은 자동으로 진행됩니다."
+                    });
+
+                    return;
+                }
+
+
+                if (
+                    room.state !==
+                    "waiting"
+                ) {
+
+                    callback({
+                        success: false,
+
+                        message:
+                            "이미 게임이 시작되었습니다."
                     });
 
                     return;
@@ -1001,6 +1648,7 @@ io.on(
 
                     callback({
                         success: false,
+
                         message:
                             "최소 4명이 필요합니다."
                     });
@@ -1009,32 +1657,8 @@ io.on(
                 }
 
 
-                if (
-                    room.players.size > 8
-                ) {
-
-                    callback({
-                        success: false,
-                        message:
-                            "최대 8명까지 플레이할 수 있습니다."
-                    });
-
-                    return;
-                }
-
-
-                room.state =
-                    "readyForGame";
-
-
-                io.to(
-                    room.id
-                ).emit(
-                    "gameStartPlaceholder",
-                    {
-                        message:
-                            "게임 인원이 확정되었습니다!"
-                    }
+                startModeVoting(
+                    room
                 );
 
 
@@ -1047,7 +1671,124 @@ io.on(
 
 
         // =================================================
-        // 연결 종료
+        // 게임 유형 투표
+        // =================================================
+
+        socket.on(
+            "voteGameMode",
+            (
+                mode,
+                callback
+            ) => {
+
+                const player =
+                    getPlayer(
+                        socket.id
+                    );
+
+
+                if (
+                    !player ||
+                    !player.roomId
+                ) {
+
+                    callback({
+                        success: false,
+
+                        message:
+                            "현재 게임방이 없습니다."
+                    });
+
+                    return;
+                }
+
+
+                const room =
+                    rooms.get(
+                        player.roomId
+                    );
+
+
+                if (
+                    !room ||
+                    room.state !==
+                    "modeVote"
+                ) {
+
+                    callback({
+                        success: false,
+
+                        message:
+                            "현재는 게임 방식 투표 시간이 아닙니다."
+                    });
+
+                    return;
+                }
+
+
+                if (
+                    ![
+                        "basic",
+                        "question",
+                        "fool"
+                    ].includes(mode)
+                ) {
+
+                    callback({
+                        success: false,
+
+                        message:
+                            "잘못된 게임 방식입니다."
+                    });
+
+                    return;
+                }
+
+
+                if (
+                    room.modeVotes.has(
+                        socket.id
+                    )
+                ) {
+
+                    callback({
+                        success: false,
+
+                        message:
+                            "이미 투표했습니다."
+                    });
+
+                    return;
+                }
+
+
+                room.modeVotes.set(
+                    socket.id,
+                    mode
+                );
+
+
+                callback({
+                    success: true,
+                    mode
+                });
+
+
+                broadcastModeVotes(
+                    room
+                );
+
+
+                checkModeVotingFinished(
+                    room
+                );
+
+            }
+        );
+
+
+        // =================================================
+        // 접속 종료
         // =================================================
 
         socket.on(
@@ -1090,7 +1831,7 @@ io.on(
 
 
 // =====================================================
-// 서버 시작
+// 서버 실행
 // =====================================================
 
 server.listen(
