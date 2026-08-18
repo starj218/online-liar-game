@@ -1,3620 +1,635 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>온라인 라이어 게임</title>
-
-
 <style>
-
-/* =====================================================
-   기본
-===================================================== */
-
-* {
-    box-sizing: border-box;
-}
-
-html,
-body {
-    margin: 0;
-    width: 100%;
-    min-height: 100%;
-}
-
-body {
-
-    background:
-        radial-gradient(
-            circle at top,
-            #292929,
-            #141414 72%
-        );
-
-    color: white;
-
-    font-family:
-        Arial,
-        "Malgun Gothic",
-        sans-serif;
-
-    overflow-x: hidden;
-}
-
-button,
-input {
-    font-family: inherit;
-}
-
-button {
-    border: none;
-    cursor: pointer;
-}
-
-.hidden {
-    display: none !important;
-}
-
-
-/* =====================================================
-   화면
-===================================================== */
-
-.screen {
-
-    width: 100%;
-    min-height: 100vh;
-
-    position: relative;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    padding: 30px 20px;
-
-    overflow: hidden;
-}
-
-
-/* =====================================================
-   배경 도형
-===================================================== */
-
-.shape {
-
-    position: absolute;
-
-    opacity: 0.95;
-
-    animation:
-        floating
-        5s
-        ease-in-out
-        infinite
-        alternate;
-}
-
-.shape1 {
-
-    width: 110px;
-    height: 70px;
-
-    background: #dc9df1;
-
-    border-radius:
-        60% 40% 45% 55%;
-
-    top: 6%;
-    left: 3%;
-
-    transform: rotate(15deg);
-}
-
-.shape2 {
-
-    width: 68px;
-    height: 68px;
-
-    background: #ff7627;
-
-    border-radius:
-        48% 52% 60% 40%;
-
-    top: 9%;
-    left: 47%;
-}
-
-.shape3 {
-
-    width: 65px;
-    height: 95px;
-
-    background: #50d9e6;
-
-    border-radius:
-        65% 35% 45% 55%;
-
-    top: 17%;
-    right: 4%;
-}
-
-.shape4 {
-
-    width: 65px;
-    height: 145px;
-
-    background: #14c56d;
-
-    border-radius: 50px;
-
-    left: 10%;
-    bottom: 7%;
-
-    transform: rotate(30deg);
-}
-
-.shape5 {
-
-    width: 55px;
-    height: 92px;
-
-    background: #f44eb8;
-
-    border-radius:
-        50% 50% 60% 40%;
-
-    right: 24%;
-    bottom: 10%;
-
-    transform: rotate(-25deg);
-}
-
-
-@keyframes floating {
-
-    from {
-        translate: 0 0;
-    }
-
-    to {
-        translate: 0 -15px;
-    }
-
-}
-
-
-/* =====================================================
-   닉네임
-===================================================== */
-
-.nickname-card {
-
-    width:
-        min(
-            92vw,
-            460px
-        );
-
-    padding:
-        42px 35px;
-
-    background:
-        #f5f5f5;
-
-    border:
-        7px solid #cbbbea;
-
-    border-radius:
-        42px;
-
-    color:
-        #171717;
-
-    text-align:
-        center;
-
-    box-shadow:
-        0 25px 70px
-        rgba(0,0,0,0.4);
-}
-
-
-.nickname-title {
-
-    font-size:
-        clamp(
-            30px,
-            8vw,
-            44px
-        );
-
-    font-weight: 900;
-
-    margin-bottom: 28px;
-}
-
-
-.text-input {
-
-    width: 100%;
-
-    padding: 16px 18px;
-
-    border:
-        3px solid #222;
-
-    border-radius: 17px;
-
-    outline: none;
-
-    font-size: 19px;
-
-    text-align: center;
-
-    background: white;
-}
-
-
-.primary-button {
-
-    width: 100%;
-
-    padding: 15px 20px;
-
-    margin-top: 15px;
-
-    border-radius: 16px;
-
-    background: #5965ef;
-
-    color: white;
-
-    font-size: 20px;
-
-    font-weight: 800;
-
-    transition: 0.18s;
-}
-
-
-.primary-button:hover {
-
-    transform:
-        translateY(-2px)
-        scale(1.01);
-}
-
-
-.error-text {
-
-    min-height: 24px;
-
-    margin-top: 14px;
-
-    color: #dc2626;
-
-    font-weight: 700;
-}
-
-
-/* =====================================================
-   메인
-===================================================== */
-
-.main-content {
-
-    position: relative;
-
-    z-index: 5;
-
-    width:
-        min(
-            92vw,
-            560px
-        );
-
-    text-align: center;
-}
-
-
-.logo {
-
-    margin-bottom: 80px;
-
-    font-size:
-        clamp(
-            45px,
-            10vw,
-            72px
-        );
-
-    font-weight: 1000;
-
-    letter-spacing: -5px;
-
-    transform: rotate(-3deg);
-
-    text-shadow:
-        5px 5px 0
-        rgba(0,0,0,0.3);
-}
-
-
-.menu-button {
-
-    display: block;
-
-    width:
-        min(
-            280px,
-            80vw
-        );
-
-    margin:
-        14px auto;
-
-    padding:
-        17px 20px;
-
-    border-radius: 25px;
-
-    color: white;
-
-    font-size: 23px;
-
-    font-weight: 900;
-
-    transition: 0.18s;
-
-    box-shadow:
-        0 8px 25px
-        rgba(0,0,0,0.25);
-}
-
-
-.menu-button:hover {
-
-    transform:
-        translateY(-3px)
-        scale(1.035);
-}
-
-
-.room-button {
-    background: #5965ef;
-}
-
-.match-button {
-    background: #13b96a;
-}
-
-
-/* =====================================================
-   팝업
-===================================================== */
-
-.modal-backdrop {
-
-    position: fixed;
-
-    inset: 0;
-
-    z-index: 200;
-
-    background:
-        rgba(0,0,0,0.72);
-
-    backdrop-filter:
-        blur(8px);
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    padding: 20px;
-}
-
-
-.modal {
-
-    width:
-        min(
-            92vw,
-            450px
-        );
-
-    background: #252525;
-
-    border:
-        2px solid #444;
-
-    border-radius: 28px;
-
-    padding: 30px;
-
-    text-align: center;
-
-    box-shadow:
-        0 25px 80px
-        rgba(0,0,0,0.5);
-}
-
-
-.modal-title {
-
-    margin:
-        0 0 22px;
-
-    font-size: 29px;
-
-    font-weight: 900;
-}
-
-
-.modal-description {
-
-    color: #bdbdbd;
-
-    line-height: 1.6;
-
-    margin-bottom: 20px;
-}
-
-
-.modal-buttons {
-
-    display: flex;
-
-    gap: 10px;
-
-    margin-top: 15px;
-}
-
-
-.modal-buttons button {
-    flex: 1;
-}
-
-
-/* =====================================================
-   매칭 인원 선택
-===================================================== */
-
-.size-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            5,
-            1fr
-        );
-
-    gap: 8px;
-}
-
-
-.size-button {
-
-    padding:
-        17px 5px;
-
-    background: #373737;
-
-    color: white;
-
-    border-radius: 14px;
-
-    font-size: 17px;
-
-    font-weight: 900;
-
-    transition: 0.15s;
-}
-
-
-.size-button:hover {
-
-    background: #13b96a;
-
-    transform:
-        translateY(-2px);
-}
-
-
-/* =====================================================
-   보조 버튼
-===================================================== */
-
-.secondary-button {
-
-    padding: 14px 20px;
-
-    border-radius: 14px;
-
-    background: #4a4a4a;
-
-    color: white;
-
-    font-size: 17px;
-
-    font-weight: 800;
-}
-
-
-.danger-button {
-
-    padding: 14px 20px;
-
-    border-radius: 14px;
-
-    background: #c43b3b;
-
-    color: white;
-
-    font-size: 17px;
-
-    font-weight: 800;
-}
-
-
-/* =====================================================
-   대기방
-===================================================== */
-
-.waiting-card {
-
-    position: relative;
-
-    z-index: 5;
-
-    width:
-        min(
-            94vw,
-            650px
-        );
-
-    padding:
-        35px 30px;
-
-    background:
-        rgba(31,31,31,0.96);
-
-    border:
-        2px solid #404040;
-
-    border-radius: 30px;
-
-    text-align: center;
-
-    box-shadow:
-        0 30px 90px
-        rgba(0,0,0,0.4);
-}
-
-
-.waiting-title {
-
-    font-size:
-        clamp(
-            29px,
-            7vw,
-            42px
-        );
-
-    font-weight: 900;
-
-    margin-bottom: 10px;
-}
-
-
-.room-code {
-
-    display: inline-block;
-
-    margin: 15px 0;
-
-    padding: 10px 20px;
-
-    border-radius: 12px;
-
-    background: #111;
-
-    color: #98a4ff;
-
-    font-size: 28px;
-
-    font-weight: 900;
-
-    letter-spacing: 3px;
-}
-
-
-.big-count {
-
-    margin: 25px 0;
-
-    font-size: 58px;
-
-    font-weight: 1000;
-}
-
-
-.waiting-player-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(
-                130px,
-                1fr
-            )
-        );
-
-    gap: 10px;
-
-    margin: 25px 0;
-}
-
-
-.waiting-player {
-
-    padding:
-        13px 10px;
-
-    border-radius: 14px;
-
-    background: #333;
-
-    font-weight: 800;
-}
-
-
-.waiting-player.me {
-
-    background: #4e58c8;
-
-    border:
-        2px solid #9ca5ff;
-}
-
-
-.start-button {
-
-    width:
-        min(
-            320px,
-            100%
-        );
-
-    padding: 17px;
-
-    border-radius: 16px;
-
-    font-size: 20px;
-
-    font-weight: 900;
-
-    background: #3f3f3f;
-
-    color: #888;
-
-    cursor: not-allowed;
-}
-
-
-.start-button.active {
-
-    background: #16a34a;
-
-    color: white;
-
-    cursor: pointer;
-
-    box-shadow:
-        0 0 30px
-        rgba(22,163,74,0.35);
-}
-
-
-.start-button.active:hover {
-
-    transform:
-        scale(1.025);
-}
-
-
-/* =====================================================
-   게임 모드 투표
-===================================================== */
-
-.vote-card {
-
-    position: relative;
-
-    z-index: 10;
-
-    width:
-        min(
-            94vw,
-            830px
-        );
-
-    padding:
-        38px 32px;
-
-    background:
-        rgba(28,28,28,0.97);
-
-    border:
-        2px solid #454545;
-
-    border-radius: 32px;
-
-    text-align: center;
-
-    box-shadow:
-        0 30px 90px
-        rgba(0,0,0,0.45);
-}
-
-
-.vote-title {
-
-    font-size:
-        clamp(
-            32px,
-            7vw,
-            48px
-        );
-
-    font-weight: 1000;
-
-    margin-bottom: 8px;
-}
-
-
-.vote-subtitle {
-
-    color: #aaa;
-
-    margin-bottom: 28px;
-
-    font-size: 17px;
-}
-
-
-.game-mode-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            3,
-            1fr
-        );
-
-    gap: 15px;
-}
-
-
-.game-mode-card {
-
-    position: relative;
-
-    min-height: 250px;
-
-    padding:
-        24px 17px;
-
-    background:
-        #303030;
-
-    border:
-        3px solid transparent;
-
-    border-radius: 23px;
-
-    color: white;
-
-    transition: 0.2s;
-}
-
-
-.game-mode-card:hover {
-
-    transform:
-        translateY(-5px);
-
-    background:
-        #383838;
-}
-
-
-.game-mode-card.selected {
-
-    border-color:
-        #8c96ff;
-
-    background:
-        #393d67;
-
-    transform:
-        translateY(-3px);
-}
-
-
-.game-mode-card.locked {
-
-    cursor: default;
-}
-
-
-.mode-number {
-
-    font-size: 34px;
-
-    font-weight: 1000;
-
-    margin-bottom: 10px;
-}
-
-
-.mode-name {
-
-    font-size: 24px;
-
-    font-weight: 900;
-
-    margin-bottom: 13px;
-}
-
-
-.mode-description {
-
-    color: #bcbcbc;
-
-    line-height: 1.55;
-
-    font-size: 15px;
-}
-
-
-.mode-votes {
-
-    position: absolute;
-
-    left: 0;
-    right: 0;
-    bottom: 16px;
-
-    font-size: 20px;
-
-    font-weight: 900;
-
-    color: #aeb5ff;
-}
-
-
-.vote-progress {
-
-    margin-top: 25px;
-
-    font-size: 20px;
-
-    font-weight: 900;
-}
-
-
-.vote-wait-message {
-
-    margin-top: 9px;
-
-    color: #aaa;
-
-    min-height: 24px;
-}
-
-
-/* =====================================================
-   게임 모드 결과
-===================================================== */
-
-.result-card {
-
-    position: relative;
-
-    z-index: 10;
-
-    width:
-        min(
-            92vw,
-            600px
-        );
-
-    padding:
-        50px 30px;
-
-    background: #242424;
-
-    border:
-        2px solid #454545;
-
-    border-radius: 32px;
-
-    text-align: center;
-
-    box-shadow:
-        0 30px 100px
-        rgba(0,0,0,0.5);
-}
-
-
-.result-small {
-
-    color: #aaa;
-
-    font-size: 18px;
-
-    margin-bottom: 12px;
-}
-
-
-.result-mode {
-
-    font-size:
-        clamp(
-            40px,
-            10vw,
-            65px
-        );
-
-    font-weight: 1000;
-
-    margin:
-        20px 0;
-}
-
-
-.tie-message {
-
-    color: #ffcf70;
-
-    font-size: 18px;
-
-    font-weight: 800;
-
-    margin-top: 16px;
-}
-
-
-/* =====================================================
-   카운트다운
-===================================================== */
-
-.countdown-card {
-
-    position: relative;
-
-    z-index: 10;
-
-    text-align: center;
-}
-
-
-.countdown-title {
-
-    font-size:
-        clamp(
-            27px,
-            7vw,
-            42px
-        );
-
-    font-weight: 900;
-}
-
-
-.countdown-number {
-
-    font-size:
-        clamp(
-            120px,
-            30vw,
-            220px
-        );
-
-    line-height: 1;
-
-    font-weight: 1000;
-
-    margin:
-        30px 0;
-
-    animation:
-        countdownPop
-        0.5s
-        ease;
-}
-
-
-@keyframes countdownPop {
-
-    0% {
-        transform:
-            scale(1.5);
-        opacity: 0.1;
-    }
-
-    100% {
-        transform:
-            scale(1);
-        opacity: 1;
-    }
-
-}
-
-
-.countdown-mode {
-
-    color: #aaa;
-
-    font-size: 20px;
-}
-
-
-/* =====================================================
-   다음 단계 임시 화면
-===================================================== */
-
-.next-stage {
-
-    width:
-        min(
-            92vw,
-            620px
-        );
-
-    padding:
-        45px 30px;
-
-    border-radius: 30px;
-
-    background: #222;
-
-    text-align: center;
-
-    border:
-        2px solid #444;
-}
-
-
-.next-stage h1 {
-
-    font-size:
-        clamp(
-            30px,
-            8vw,
-            45px
-        );
-}
-
-
-.next-mode-name {
-
-    margin:
-        25px 0;
-
-    font-size: 32px;
-
-    color: #9ea7ff;
-
-    font-weight: 900;
-}
-
-
-/* =====================================================
-   오른쪽 아래 플레이어
-===================================================== */
-
-.player-list-box {
-
-    position: fixed;
-
-    z-index: 150;
-
-    right: 16px;
-    bottom: 16px;
-
-    width: 205px;
-
-    max-height: 255px;
-
-    overflow-y: auto;
-
-    padding: 14px;
-
-    border:
-        1px solid
-        rgba(255,255,255,0.16);
-
-    border-radius: 17px;
-
-    background:
-        rgba(5,5,5,0.72);
-
-    backdrop-filter:
-        blur(10px);
-
-    box-shadow:
-        0 10px 35px
-        rgba(0,0,0,0.3);
-}
-
-
-.player-list-title {
-
-    font-size: 14px;
-
-    font-weight: 900;
-
-    margin-bottom: 9px;
-
-    color: #ddd;
-}
-
-
-.player-row {
-
-    padding: 5px 2px;
-
-    font-size: 14px;
-
-    color: #ccc;
-}
-
-
-.player-row.me {
-
-    color: #75e8f5;
-
-    font-weight: 900;
-}
-
-
-/* =====================================================
-   토스트
-===================================================== */
-
-.toast {
-
-    position: fixed;
-
-    z-index: 500;
-
-    top: 24px;
-    left: 50%;
-
-    transform:
-        translateX(-50%);
-
-    padding:
-        13px 22px;
-
-    border-radius: 14px;
-
-    background:
-        rgba(20,20,20,0.96);
-
-    border:
-        1px solid #555;
-
-    font-weight: 800;
-
-    box-shadow:
-        0 10px 40px
-        rgba(0,0,0,0.4);
-}
-
-
-/* =====================================================
-   모바일
-===================================================== */
-
-@media (
-    max-width: 700px
-) {
-
-    .game-mode-grid {
-
-        grid-template-columns:
-            1fr;
-
-    }
-
-
-    .game-mode-card {
-
-        min-height: 190px;
-
-    }
-
-
-    .player-list-box {
-
-        width: 155px;
-
-        right: 8px;
-        bottom: 8px;
-
-        max-height: 180px;
-    }
-
-
-    .waiting-card,
-    .vote-card,
-    .result-card {
-
-        padding-bottom: 150px;
-    }
-
-
-    .size-grid {
-
-        grid-template-columns:
-            repeat(
-                3,
-                1fr
-            );
-    }
-
-}
-
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,"Malgun Gothic",sans-serif}
+body{background:radial-gradient(circle at top,#292929,#141414 72%);color:#fff;overflow-x:hidden}
+button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!important}
+.screen{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;padding:28px 18px;overflow:hidden}
+.shape{position:absolute;opacity:.95;animation:float 5s ease-in-out infinite alternate}
+.s1{width:110px;height:70px;background:#dc9df1;border-radius:60% 40% 45% 55%;top:6%;left:3%;transform:rotate(15deg)}
+.s2{width:68px;height:68px;background:#ff7627;border-radius:48% 52% 60% 40%;top:9%;left:47%}
+.s3{width:65px;height:95px;background:#50d9e6;border-radius:65% 35% 45% 55%;top:17%;right:4%}
+.s4{width:65px;height:145px;background:#14c56d;border-radius:50px;left:10%;bottom:7%;transform:rotate(30deg)}
+.s5{width:55px;height:92px;background:#f44eb8;border-radius:50% 50% 60% 40%;right:24%;bottom:10%;transform:rotate(-25deg)}
+@keyframes float{to{translate:0 -15px}}
+.card{position:relative;z-index:5;width:min(94vw,760px);padding:34px;background:rgba(30,30,30,.97);border:2px solid #454545;border-radius:30px;box-shadow:0 28px 80px rgba(0,0,0,.45);text-align:center}
+.nickname-card{width:min(92vw,460px);background:#f5f5f5;color:#171717;border:7px solid #cbbbea}
+.title{font-size:clamp(30px,7vw,48px);font-weight:1000;margin:0 0 12px}.sub{color:#aaa;line-height:1.6;margin:0 0 22px}
+.text-input{width:100%;padding:15px 18px;border:3px solid #222;border-radius:16px;font-size:19px;text-align:center;outline:none;background:#fff}
+.primary,.secondary,.danger,.start{padding:15px 20px;border-radius:16px;color:#fff;font-weight:900;font-size:18px}
+.primary{width:100%;margin-top:14px;background:#5965ef}.secondary{background:#4a4a4a}.danger{background:#c43b3b}.error{min-height:24px;margin-top:12px;color:#dc2626;font-weight:800}
+.logo{font-size:clamp(46px,10vw,72px);font-weight:1000;letter-spacing:-5px;transform:rotate(-3deg);margin-bottom:78px}
+.menu{display:block;width:min(280px,80vw);margin:14px auto;padding:17px;border-radius:25px;color:#fff;font-size:23px;font-weight:900}
+.room-btn{background:#5965ef}.match-btn{background:#13b96a}
+.modal-bg{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{width:min(92vw,450px);background:#252525;border:2px solid #444;border-radius:28px;padding:28px;text-align:center}
+.row{display:flex;gap:10px;margin-top:14px}.row>*{flex:1}.size-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.size{padding:16px 5px;background:#373737;color:#fff;border-radius:14px;font-weight:900}.size:hover{background:#13b96a}
+.room-code{display:inline-block;margin:12px 0;padding:9px 18px;border-radius:12px;background:#111;color:#9ca5ff;font-size:26px;font-weight:900;letter-spacing:3px}
+.big-count{font-size:58px;font-weight:1000;margin:20px 0}
+.player-grid,.ready-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:9px;margin:22px 0}
+.pill{padding:12px 9px;background:#333;border-radius:13px;font-weight:800}.pill.me{background:#4e58c8;border:2px solid #9ca5ff}
+.start{width:min(320px,100%);background:#3f3f3f;color:#888;cursor:not-allowed}.start.active{background:#16a34a;color:#fff;cursor:pointer}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mode{min-height:235px;position:relative;padding:22px 16px 50px;border-radius:22px;background:#303030;color:#fff;border:3px solid transparent}
+.mode.selected{border-color:#8c96ff;background:#393d67}.mode h2{margin:4px 0 10px}.mode p{color:#bbb;line-height:1.5}.votes{position:absolute;left:0;right:0;bottom:14px;font-size:20px;font-weight:900;color:#aeb5ff}
+.count{font-size:20px;font-weight:900;margin-top:22px}.tie{color:#ffcf70;font-weight:900}
+.countdown{font-size:clamp(120px,28vw,220px);font-weight:1000;line-height:1;margin:25px 0}
+@keyframes pop{0%{transform:scale(1.5);opacity:.1}100%{transform:scale(1);opacity:1}}
+.secret{width:min(100%,540px);margin:auto;padding:28px 20px;background:#111;border:2px solid #626cff;border-radius:24px}
+.label{color:#9ca3af;font-size:14px;font-weight:800;margin:8px 0}.role{font-size:clamp(30px,7vw,46px);font-weight:1000;margin-bottom:15px}.citizen{color:#8fb3ff}.liar{color:#ff7474}
+.category{font-size:23px;font-weight:900;margin-bottom:18px}.word{font-size:clamp(36px,10vw,62px);font-weight:1000;color:#b8beff;word-break:keep-all}.unknown{color:#ff7373;letter-spacing:5px}
+.timer{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:20px auto 0;background:#181818;border:4px solid #ffb347;font-size:28px;font-weight:1000}
+.ready-btn{display:block;width:min(100%,360px);margin:18px auto 0;padding:16px;border-radius:17px;background:#17a95b;color:#fff;font-size:20px;font-weight:900}.ready-btn.done{background:#3c3c3c;color:#a5f3c4;cursor:default}
+.ready-box{margin-top:26px;padding:18px;background:#222;border-radius:18px}.ready-pill{padding:10px;border-radius:11px;font-size:14px;font-weight:800;background:#4b2727;color:#ffb2b2}.ready-pill.yes{background:#164b2c;color:#9ff0bb}
+.side{position:fixed;z-index:150;right:14px;bottom:14px;width:205px;max-height:250px;overflow:auto;padding:13px;background:rgba(5,5,5,.75);border:1px solid rgba(255,255,255,.16);border-radius:17px;backdrop-filter:blur(10px)}
+.side h4,.mini h4{margin:0 0 8px}.player-row{padding:4px 0;color:#ccc;font-size:14px}.player-row.me{color:#75e8f5;font-weight:900}.player-row.ready{color:#9ff0bb}.player-row.unready{color:#ffb2b2}
+.mini{position:fixed;z-index:145;left:14px;bottom:14px;width:205px;padding:13px;background:rgba(5,5,5,.78);border:1px solid rgba(255,255,255,.17);border-radius:17px;backdrop-filter:blur(10px);font-size:14px}.mini div{margin:5px 0}.imp{color:#aeb5ff;font-weight:900}.bad{color:#ff8585;font-weight:900}
+.toast{position:fixed;z-index:500;top:22px;left:50%;transform:translateX(-50%);padding:12px 20px;background:#151515;border:1px solid #555;border-radius:14px;font-weight:800}
+.warn-bg{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.84);display:flex;align-items:center;justify-content:center;padding:20px}.warn{width:min(92vw,480px);padding:32px;background:#2a2020;border:2px solid #d26060;border-radius:24px;text-align:center}.warn h2{color:#ff9292}
+@media(max-width:700px){.mode-grid{grid-template-columns:1fr}.mode{min-height:185px}.size-grid{grid-template-columns:repeat(3,1fr)}.card{padding-bottom:185px}.side,.mini{width:145px;bottom:8px}.side{right:8px}.mini{left:8px}}
 </style>
-
 </head>
-
-
 <body>
 
-
-<!-- =====================================================
-     닉네임
-===================================================== -->
-
-<section
-    id="nicknameScreen"
-    class="screen"
->
-
-    <div class="nickname-card">
-
-        <div class="nickname-title">
-
-            &lt;닉네임&gt;
-
-        </div>
-
-
-        <input
-            id="nicknameInput"
-            class="text-input"
-            maxlength="10"
-            autocomplete="off"
-            placeholder="닉네임을 입력하세요"
-        >
-
-
-        <button
-            class="primary-button"
-            onclick="enterGame()"
-        >
-
-            입장
-
-        </button>
-
-
-        <div
-            id="nicknameError"
-            class="error-text"
-        ></div>
-
-    </div>
-
+<section id="nicknameScreen" class="screen">
+  <div class="card nickname-card">
+    <div class="title">&lt;닉네임&gt;</div>
+    <input id="nicknameInput" class="text-input" maxlength="10" autocomplete="off" placeholder="닉네임을 입력하세요">
+    <button class="primary" onclick="enterGame()">입장</button>
+    <div id="nicknameError" class="error"></div>
+  </div>
 </section>
 
-
-
-<!-- =====================================================
-     메인
-===================================================== -->
-
-<section
-    id="mainScreen"
-    class="screen hidden"
->
-
-    <div class="shape shape1"></div>
-    <div class="shape shape2"></div>
-    <div class="shape shape3"></div>
-    <div class="shape shape4"></div>
-    <div class="shape shape5"></div>
-
-
-    <div class="main-content">
-
-        <div class="logo">
-
-            라이어 게임
-
-        </div>
-
-
-        <button
-            class="menu-button room-button"
-            onclick="openRoomModal()"
-        >
-
-            방번호 입장
-
-        </button>
-
-
-        <button
-            class="menu-button match-button"
-            onclick="openMatchModal()"
-        >
-
-            랜덤 매칭
-
-        </button>
-
-    </div>
-
+<section id="mainScreen" class="screen hidden">
+  <div class="shape s1"></div><div class="shape s2"></div><div class="shape s3"></div><div class="shape s4"></div><div class="shape s5"></div>
+  <div style="position:relative;z-index:5;text-align:center">
+    <div class="logo">라이어 게임</div>
+    <button class="menu room-btn" onclick="openRoomModal()">방번호 입장</button>
+    <button class="menu match-btn" onclick="openMatchModal()">랜덤 매칭</button>
+  </div>
 </section>
 
-
-
-<!-- =====================================================
-     대기방
-===================================================== -->
-
-<section
-    id="waitingScreen"
-    class="screen hidden"
->
-
-    <div class="shape shape1"></div>
-    <div class="shape shape3"></div>
-    <div class="shape shape5"></div>
-
-
-    <div class="waiting-card">
-
-        <div
-            id="waitingTitle"
-            class="waiting-title"
-        >
-            대기 중
-        </div>
-
-
-        <div
-            id="waitingSubtitle"
-            class="modal-description"
-        ></div>
-
-
-        <div
-            id="roomCodeDisplay"
-            class="room-code hidden"
-        ></div>
-
-
-        <div
-            id="bigCount"
-            class="big-count"
-        >
-            0 / 4
-        </div>
-
-
-        <div
-            id="waitingPlayerGrid"
-            class="waiting-player-grid"
-        ></div>
-
-
-        <button
-            id="startGameButton"
-            class="start-button hidden"
-            onclick="requestGameStart()"
-        >
-
-            게임 시작
-
-        </button>
-
-
-        <div>
-
-            <button
-                class="danger-button"
-                style="margin-top:18px;"
-                onclick="leaveCurrentPlace()"
-            >
-
-                나가기
-
-            </button>
-
-        </div>
-
-    </div>
-
+<section id="waitingScreen" class="screen hidden">
+  <div class="card">
+    <div id="waitingTitle" class="title">대기 중</div>
+    <div id="waitingSubtitle" class="sub"></div>
+    <div id="roomCodeDisplay" class="room-code hidden"></div>
+    <div id="bigCount" class="big-count">0 / 4</div>
+    <div id="waitingPlayerGrid" class="player-grid"></div>
+    <button id="startGameButton" class="start hidden" onclick="requestGameStart()">게임 시작</button>
+    <div><button class="danger" style="margin-top:16px" onclick="leaveCurrentPlace()">나가기</button></div>
+  </div>
 </section>
 
-
-
-<!-- =====================================================
-     게임 방식 투표
-===================================================== -->
-
-<section
-    id="modeVoteScreen"
-    class="screen hidden"
->
-
-    <div class="shape shape1"></div>
-    <div class="shape shape2"></div>
-    <div class="shape shape3"></div>
-    <div class="shape shape5"></div>
-
-
-    <div class="vote-card">
-
-        <div class="vote-title">
-
-            🎮 게임 방식 투표
-
-        </div>
-
-
-        <div class="vote-subtitle">
-
-            이번 판에 플레이하고 싶은 방식을 선택하세요.
-
-        </div>
-
-
-        <div class="game-mode-grid">
-
-
-            <button
-                id="modeBasic"
-                class="game-mode-card"
-                onclick="voteGameMode('basic')"
-            >
-
-                <div class="mode-number">
-                    1
-                </div>
-
-                <div class="mode-name">
-                    기본형
-                </div>
-
-                <div class="mode-description">
-
-                    시민들은 같은 제시어를 알고,
-                    라이어만 제시어를 모릅니다.
-
-                    <br><br>
-
-                    힌트를 말하며 라이어를 찾아냅니다.
-
-                </div>
-
-                <div
-                    id="basicVotes"
-                    class="mode-votes"
-                >
-                    0표
-                </div>
-
-            </button>
-
-
-            <button
-                id="modeQuestion"
-                class="game-mode-card"
-                onclick="voteGameMode('question')"
-            >
-
-                <div class="mode-number">
-                    2
-                </div>
-
-                <div class="mode-name">
-                    질문형
-                </div>
-
-                <div class="mode-description">
-
-                    시민은 제시어를 알고,
-                    라이어는 모릅니다.
-
-                    <br><br>
-
-                    같은 질문에 답하면서
-                    누가 라이어인지 추리합니다.
-
-                </div>
-
-                <div
-                    id="questionVotes"
-                    class="mode-votes"
-                >
-                    0표
-                </div>
-
-            </button>
-
-
-            <button
-                id="modeFool"
-                class="game-mode-card"
-                onclick="voteGameMode('fool')"
-            >
-
-                <div class="mode-number">
-                    3
-                </div>
-
-                <div class="mode-name">
-                    바보형
-                </div>
-
-                <div class="mode-description">
-
-                    모두 제시어를 받지만,
-                    한 명만 살짝 다른 제시어를 받습니다.
-
-                    <br><br>
-
-                    누구도 자신의 역할을 알 수 없습니다.
-
-                </div>
-
-                <div
-                    id="foolVotes"
-                    class="mode-votes"
-                >
-                    0표
-                </div>
-
-            </button>
-
-
-        </div>
-
-
-        <div
-            id="modeVoteProgress"
-            class="vote-progress"
-        >
-
-            투표 완료 0 / 0
-
-        </div>
-
-
-        <div
-            id="modeVoteMessage"
-            class="vote-wait-message"
-        >
-
-            하나를 선택해주세요.
-
-        </div>
-
+<section id="modeVoteScreen" class="screen hidden">
+  <div class="card" style="width:min(94vw,850px)">
+    <div class="title">🎮 게임 방식 투표</div>
+    <div class="sub">이번 판에 플레이하고 싶은 방식을 선택하세요.</div>
+    <div class="mode-grid">
+      <button id="modeBasic" class="mode" onclick="voteGameMode('basic')">
+        <div style="font-size:32px;font-weight:1000">1</div><h2>기본형</h2>
+        <p>시민들은 같은 제시어를 알고, 라이어만 제시어를 모릅니다.</p>
+        <div id="basicVotes" class="votes">0표</div>
+      </button>
+      <button id="modeQuestion" class="mode" onclick="voteGameMode('question')">
+        <div style="font-size:32px;font-weight:1000">2</div><h2>질문형</h2>
+        <p>같은 질문에 답하면서 누가 제시어를 모르는지 추리합니다.</p>
+        <div id="questionVotes" class="votes">0표</div>
+      </button>
+      <button id="modeFool" class="mode" onclick="voteGameMode('fool')">
+        <div style="font-size:32px;font-weight:1000">3</div><h2>바보형</h2>
+        <p>한 명만 살짝 다른 제시어를 받으며 역할은 표시되지 않습니다.</p>
+        <div id="foolVotes" class="votes">0표</div>
+      </button>
     </div>
-
+    <div id="modeVoteProgress" class="count">투표 완료 0 / 0</div>
+    <div id="modeVoteMessage" class="sub" style="margin-top:8px">하나를 선택해주세요.</div>
+  </div>
 </section>
 
-
-
-<!-- =====================================================
-     모드 결정 결과
-===================================================== -->
-
-<section
-    id="modeResultScreen"
-    class="screen hidden"
->
-
-    <div class="result-card">
-
-        <div class="result-small">
-
-            이번 게임 방식은...
-
-        </div>
-
-
-        <div
-            id="selectedModeName"
-            class="result-mode"
-        >
-
-            기본형
-
-        </div>
-
-
-        <div
-            id="modeResultScores"
-            class="modal-description"
-        ></div>
-
-
-        <div
-            id="tieMessage"
-            class="tie-message hidden"
-        ></div>
-
-    </div>
-
+<section id="modeResultScreen" class="screen hidden">
+  <div class="card">
+    <div class="sub">이번 게임 방식은...</div>
+    <div id="selectedModeName" class="title" style="font-size:clamp(42px,10vw,66px)">기본형</div>
+    <div id="modeResultScores" class="sub"></div>
+    <div id="tieMessage" class="tie hidden"></div>
+  </div>
 </section>
 
-
-
-<!-- =====================================================
-     5초 카운트다운
-===================================================== -->
-
-<section
-    id="countdownScreen"
-    class="screen hidden"
->
-
-    <div class="countdown-card">
-
-        <div class="countdown-title">
-
-            게임 준비!
-
-        </div>
-
-
-        <div
-            id="countdownNumber"
-            class="countdown-number"
-        >
-
-            5
-
-        </div>
-
-
-        <div
-            id="countdownMode"
-            class="countdown-mode"
-        ></div>
-
-    </div>
-
+<section id="countdownScreen" class="screen hidden">
+  <div style="text-align:center;z-index:5">
+    <div class="title">게임 준비!</div>
+    <div id="countdownNumber" class="countdown">5</div>
+    <div id="countdownMode" class="sub"></div>
+  </div>
 </section>
 
+<section id="roleStageScreen" class="screen hidden">
+  <div class="card">
+    <div class="title">🔐 내 정보 확인</div>
+    <div class="sub">다른 사람에게 화면이 보이지 않도록 주의하세요.</div>
 
-
-<!-- =====================================================
-     역할 단계 임시 화면
-===================================================== -->
-
-<section
-    id="nextStageScreen"
-    class="screen hidden"
->
-
-    <div class="next-stage">
-
-        <h1>
-
-            🔐 역할 배정 단계
-
-        </h1>
-
-
-        <div
-            id="nextStageMode"
-            class="next-mode-name"
-        ></div>
-
-
-        <p>
-
-            3단계까지 정상적으로 완료되었습니다.
-
-        </p>
-
-
-        <p>
-
-            다음 단계에서 이 화면에
-
-            <br><br>
-
-            <b>
-                역할 / 제시어 주제 / 제시어
-            </b>
-
-            <br><br>
-
-            그리고
-
-            <b>20초 준비 완료 시스템</b>을 넣습니다.
-
-        </p>
-
+    <div class="secret">
+      <div id="roleLabel" class="label">내 역할</div>
+      <div id="roleValue" class="role"></div>
+      <div class="label">제시어 주제</div>
+      <div id="categoryValue" class="category"></div>
+      <div class="label">제시어</div>
+      <div id="wordValue" class="word"></div>
     </div>
 
+    <div id="roleTimerWrap"><div id="roleTimer" class="timer">20</div></div>
+
+    <button id="roleReadyButton" class="ready-btn" onclick="sendRoleReady()">✓ 준비 완료</button>
+
+    <div class="ready-box">
+      <div id="readyStatusTitle" style="font-weight:900;margin-bottom:12px">준비 완료 0 / 0</div>
+      <div id="readyStatusGrid" class="ready-grid"></div>
+    </div>
+  </div>
 </section>
 
-
-
-<!-- =====================================================
-     방 코드 팝업
-===================================================== -->
-
-<div
-    id="roomModal"
-    class="modal-backdrop hidden"
->
-
-    <div class="modal">
-
-        <div class="modal-title">
-
-            방번호 입장
-
-        </div>
-
-
-        <div class="modal-description">
-
-            같은 방 코드를 입력한 사람끼리
-            같은 방에 들어갑니다.
-
-        </div>
-
-
-        <input
-            id="roomCodeInput"
-            class="text-input"
-            maxlength="8"
-            autocomplete="off"
-            placeholder="예: LIAR7"
-        >
-
-
-        <div
-            id="roomError"
-            class="error-text"
-        ></div>
-
-
-        <div class="modal-buttons">
-
-            <button
-                class="secondary-button"
-                onclick="closeRoomModal()"
-            >
-
-                취소
-
-            </button>
-
-
-            <button
-                class="primary-button"
-                style="margin-top:0;"
-                onclick="joinCodeRoom()"
-            >
-
-                입장
-
-            </button>
-
-        </div>
-
+<section id="gamePlaceholderScreen" class="screen hidden">
+  <div class="card">
+    <div class="title">🎭 전원 준비 완료!</div>
+    <div class="sub">
+      역할과 제시어 배정이 완료되었습니다.<br><br>
+      왼쪽 아래 <b>내 정보</b>는 게임 중에도 계속 남습니다.<br><br>
+      다음 단계에서 다각형 플레이어 배치, 야바위 섞기, 랜덤 발언 순서를 넣습니다.
     </div>
+  </div>
+</section>
 
+<div id="roomModal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="title" style="font-size:30px">방번호 입장</div>
+    <div class="sub">같은 코드를 입력한 사람끼리 같은 방에 들어갑니다.</div>
+    <input id="roomCodeInput" class="text-input" maxlength="8" autocomplete="off" placeholder="예: LIAR7">
+    <div id="roomError" class="error"></div>
+    <div class="row">
+      <button class="secondary" onclick="closeRoomModal()">취소</button>
+      <button class="primary" style="margin:0" onclick="joinCodeRoom()">입장</button>
+    </div>
+  </div>
 </div>
 
-
-
-<!-- =====================================================
-     랜덤 매칭 팝업
-===================================================== -->
-
-<div
-    id="matchModal"
-    class="modal-backdrop hidden"
->
-
-    <div class="modal">
-
-        <div class="modal-title">
-
-            랜덤 매칭
-
-        </div>
-
-
-        <div class="modal-description">
-
-            원하는 플레이 인원수를 선택하세요.
-
-        </div>
-
-
-        <div class="size-grid">
-
-            <button
-                class="size-button"
-                onclick="startMatchmaking(4)"
-            >
-                4인
-            </button>
-
-
-            <button
-                class="size-button"
-                onclick="startMatchmaking(5)"
-            >
-                5인
-            </button>
-
-
-            <button
-                class="size-button"
-                onclick="startMatchmaking(6)"
-            >
-                6인
-            </button>
-
-
-            <button
-                class="size-button"
-                onclick="startMatchmaking(7)"
-            >
-                7인
-            </button>
-
-
-            <button
-                class="size-button"
-                onclick="startMatchmaking(8)"
-            >
-                8인
-            </button>
-
-        </div>
-
-
-        <button
-            class="secondary-button"
-            style="
-                margin-top:20px;
-                width:100%;
-            "
-            onclick="closeMatchModal()"
-        >
-
-            취소
-
-        </button>
-
+<div id="matchModal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="title" style="font-size:30px">랜덤 매칭</div>
+    <div class="sub">원하는 플레이 인원수를 선택하세요.</div>
+    <div class="size-grid">
+      <button class="size" onclick="startMatchmaking(4)">4인</button>
+      <button class="size" onclick="startMatchmaking(5)">5인</button>
+      <button class="size" onclick="startMatchmaking(6)">6인</button>
+      <button class="size" onclick="startMatchmaking(7)">7인</button>
+      <button class="size" onclick="startMatchmaking(8)">8인</button>
     </div>
-
+    <button class="secondary" style="width:100%;margin-top:18px" onclick="closeMatchModal()">취소</button>
+  </div>
 </div>
 
-
-
-<!-- =====================================================
-     우측 아래 참가자
-===================================================== -->
-
-<div
-    id="playerListBox"
-    class="player-list-box hidden"
->
-
-    <div
-        id="playerListTitle"
-        class="player-list-title"
-    >
-
-        👥 현재 접속자
-
-    </div>
-
-
-    <div id="playerList"></div>
-
+<div id="myInfoBox" class="mini hidden">
+  <h4>🔐 내 정보</h4>
+  <div id="miniRoleLine"></div>
+  <div id="miniCategoryLine"></div>
+  <div id="miniWordLine"></div>
 </div>
 
+<div id="playerListBox" class="side hidden">
+  <h4 id="playerListTitle">👥 현재 접속자</h4>
+  <div id="playerList"></div>
+</div>
 
+<div id="toast" class="toast hidden"></div>
 
-<!-- =====================================================
-     토스트
-===================================================== -->
-
-<div
-    id="toast"
-    class="toast hidden"
-></div>
-
-
+<div id="warningOverlay" class="warn-bg hidden">
+  <div class="warn">
+    <h2>⚠ 준비 시간 초과</h2>
+    <p id="warningMessage"></p>
+    <p>잠시 후 메인 화면으로 이동합니다.</p>
+  </div>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
-
-
 <script>
+const socket=io();
 
-// =====================================================
-// Socket
-// =====================================================
+let myNickname="";
+let currentMode="lobby";
+let currentRoom=null;
+let currentTargetSize=null;
+let onlinePlayers=[];
+let currentDisplayPlayers=[];
+let myGameModeVote=null;
+let selectedGameMode=null;
+let myRoleInfo=null;
+let roleTimerInterval=null;
+let latestReadyStatuses=[];
+let toastTimer=null;
 
-const socket =
-    io();
+const $=id=>document.getElementById(id);
+const modeName=m=>m==="basic"?"① 기본형":m==="question"?"② 질문형":m==="fool"?"③ 바보형":m;
 
-
-// =====================================================
-// 상태
-// =====================================================
-
-let myNickname =
-    "";
-
-let currentMode =
-    "lobby";
-
-let currentRoom =
-    null;
-
-let currentTargetSize =
-    null;
-
-let onlinePlayers =
-    [];
-
-let currentDisplayPlayers =
-    [];
-
-let myGameModeVote =
-    null;
-
-let selectedGameMode =
-    null;
-
-
-// =====================================================
-// 게임 모드 이름
-// =====================================================
-
-function getModeName(mode) {
-
-    if (
-        mode === "basic"
-    ) {
-        return "① 기본형";
-    }
-
-
-    if (
-        mode === "question"
-    ) {
-        return "② 질문형";
-    }
-
-
-    if (
-        mode === "fool"
-    ) {
-        return "③ 바보형";
-    }
-
-
-    return mode;
-
+function showScreen(id){
+  ["nicknameScreen","mainScreen","waitingScreen","modeVoteScreen","modeResultScreen","countdownScreen","roleStageScreen","gamePlaceholderScreen"]
+    .forEach(x=>$(x).classList.add("hidden"));
+  $(id).classList.remove("hidden");
 }
 
-
-// =====================================================
-// 화면 전환
-// =====================================================
-
-function showScreen(id) {
-
-    const screens = [
-
-        "nicknameScreen",
-        "mainScreen",
-        "waitingScreen",
-        "modeVoteScreen",
-        "modeResultScreen",
-        "countdownScreen",
-        "nextStageScreen"
-
-    ];
-
-
-    screens.forEach(
-        screenId => {
-
-            document
-                .getElementById(
-                    screenId
-                )
-                .classList
-                .add(
-                    "hidden"
-                );
-
-        }
-    );
-
-
-    document
-        .getElementById(
-            id
-        )
-        .classList
-        .remove(
-            "hidden"
-        );
-
+function toast(msg){
+  $("toast").textContent=msg;
+  $("toast").classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>$("toast").classList.add("hidden"),2500);
 }
 
-
-// =====================================================
-// 토스트
-// =====================================================
-
-let toastTimer =
-    null;
-
-
-function showToast(message) {
-
-    const toast =
-        document.getElementById(
-            "toast"
-        );
-
-
-    toast.textContent =
-        message;
-
-
-    toast.classList.remove(
-        "hidden"
-    );
-
-
-    clearTimeout(
-        toastTimer
-    );
-
-
-    toastTimer =
-        setTimeout(
-            () => {
-
-                toast.classList.add(
-                    "hidden"
-                );
-
-            },
-            2500
-        );
-
+function escapeHTML(t){
+  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 
-
-// =====================================================
-// 닉네임
-// =====================================================
-
-function enterGame() {
-
-    const input =
-        document.getElementById(
-            "nicknameInput"
-        );
-
-
-    const nickname =
-        input.value.trim();
-
-
-    const error =
-        document.getElementById(
-            "nicknameError"
-        );
-
-
-    error.textContent =
-        "";
-
-
-    socket.emit(
-        "joinWithNickname",
-        nickname,
-        response => {
-
-            if (
-                !response.success
-            ) {
-
-                error.textContent =
-                    response.message;
-
-                return;
-            }
-
-
-            myNickname =
-                response.nickname;
-
-
-            currentMode =
-                "lobby";
-
-
-            showScreen(
-                "mainScreen"
-            );
-
-
-            document
-                .getElementById(
-                    "playerListBox"
-                )
-                .classList
-                .remove(
-                    "hidden"
-                );
-
-
-            renderSidePlayerList();
-
-        }
-    );
-
+function enterGame(){
+  const nickname=$("nicknameInput").value.trim();
+  $("nicknameError").textContent="";
+  socket.emit("joinWithNickname",nickname,res=>{
+    if(!res.success){$("nicknameError").textContent=res.message;return;}
+    myNickname=res.nickname;
+    currentMode="lobby";
+    showScreen("mainScreen");
+    $("playerListBox").classList.remove("hidden");
+    renderSide();
+  });
 }
 
+$("nicknameInput").addEventListener("keydown",e=>{if(e.key==="Enter")enterGame();});
 
-document
-    .getElementById(
-        "nicknameInput"
-    )
-    .addEventListener(
-        "keydown",
-        event => {
+function openRoomModal(){
+  $("roomModal").classList.remove("hidden");
+  $("roomCodeInput").value="";
+  $("roomError").textContent="";
+  setTimeout(()=>$("roomCodeInput").focus(),50);
+}
+function closeRoomModal(){$("roomModal").classList.add("hidden");}
+$("roomCodeInput").addEventListener("input",function(){this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,"");});
+$("roomCodeInput").addEventListener("keydown",e=>{if(e.key==="Enter")joinCodeRoom();});
 
-            if (
-                event.key === "Enter"
-            ) {
-
-                enterGame();
-
-            }
-
-        }
-    );
-
-
-// =====================================================
-// 방 코드
-// =====================================================
-
-function openRoomModal() {
-
-    document
-        .getElementById(
-            "roomModal"
-        )
-        .classList
-        .remove(
-            "hidden"
-        );
-
-
-    const input =
-        document.getElementById(
-            "roomCodeInput"
-        );
-
-
-    input.value =
-        "";
-
-
-    document
-        .getElementById(
-            "roomError"
-        )
-        .textContent =
-        "";
-
-
-    setTimeout(
-        () =>
-            input.focus(),
-        50
-    );
-
+function joinCodeRoom(){
+  const code=$("roomCodeInput").value.trim().toUpperCase();
+  if(!code){$("roomError").textContent="방 코드를 입력해주세요.";return;}
+  socket.emit("joinCodeRoom",code,res=>{
+    if(!res.success){$("roomError").textContent=res.message;return;}
+    closeRoomModal();
+    currentMode="codeRoom";
+    currentTargetSize=null;
+    showScreen("waitingScreen");
+    $("waitingTitle").textContent="방 대기실";
+    $("waitingSubtitle").textContent="4명 이상 모이면 누구나 게임을 시작할 수 있습니다.";
+    $("roomCodeDisplay").textContent=res.code;
+    $("roomCodeDisplay").classList.remove("hidden");
+    $("startGameButton").classList.remove("hidden");
+  });
 }
 
+function openMatchModal(){$("matchModal").classList.remove("hidden");}
+function closeMatchModal(){$("matchModal").classList.add("hidden");}
 
-function closeRoomModal() {
-
-    document
-        .getElementById(
-            "roomModal"
-        )
-        .classList
-        .add(
-            "hidden"
-        );
-
+function startMatchmaking(size){
+  closeMatchModal();
+  socket.emit("joinMatchmaking",size,res=>{
+    if(!res.success){toast(res.message);return;}
+    currentMode="matchmaking";
+    currentTargetSize=res.targetSize;
+    currentRoom=null;
+    showScreen("waitingScreen");
+    $("waitingTitle").textContent=`${size}인 랜덤 매칭`;
+    $("waitingSubtitle").textContent="같은 인원수를 선택한 플레이어를 기다리고 있습니다.";
+    $("roomCodeDisplay").classList.add("hidden");
+    $("startGameButton").classList.add("hidden");
+  });
 }
 
+socket.on("matchmakingUpdate",data=>{
+  if(currentMode!=="matchmaking"||currentTargetSize!==data.targetSize)return;
+  $("bigCount").textContent=`${data.count} / ${data.targetSize}`;
+  currentDisplayPlayers=data.players;
+  renderWaiting(data.players);
+  renderSide();
+});
 
-document
-    .getElementById(
-        "roomCodeInput"
-    )
-    .addEventListener(
-        "input",
-        function() {
+socket.on("randomMatched",data=>{
+  currentMode="matchedRoom";
+  currentRoom=data;
+  currentDisplayPlayers=data.players;
+  showScreen("waitingScreen");
+  $("waitingTitle").textContent="🎉 매칭 완료!";
+  $("waitingSubtitle").innerHTML=`${data.targetSize}명이 모두 모였습니다.<br>게임 방식 투표로 이동합니다!`;
+  $("roomCodeDisplay").classList.add("hidden");
+  $("bigCount").textContent=`${data.players.length} / ${data.targetSize}`;
+  $("startGameButton").classList.add("hidden");
+  renderWaiting(data.players);
+  renderSide();
+  toast("랜덤 매칭 성공!");
+});
 
-            this.value =
-                this.value
-                    .toUpperCase()
-                    .replace(
-                        /[^A-Z0-9]/g,
-                        ""
-                    );
+socket.on("roomUpdate",room=>{
+  currentRoom=room;
+  currentDisplayPlayers=room.players;
 
-        }
-    );
+  if(room.type==="code"&&room.state==="waiting"){
+    currentMode="codeRoom";
+    $("bigCount").textContent=`${room.count} / 8`;
+    const b=$("startGameButton");
+    b.classList.remove("hidden");
+    b.disabled=!room.canStart;
+    b.classList.toggle("active",room.canStart);
+  }
 
+  renderWaiting(room.players);
+  renderSide();
+});
 
-document
-    .getElementById(
-        "roomCodeInput"
-    )
-    .addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key === "Enter"
-            ) {
-
-                joinCodeRoom();
-
-            }
-
-        }
-    );
-
-
-function joinCodeRoom() {
-
-    const input =
-        document.getElementById(
-            "roomCodeInput"
-        );
-
-
-    const code =
-        input.value
-            .trim()
-            .toUpperCase();
-
-
-    const error =
-        document.getElementById(
-            "roomError"
-        );
-
-
-    error.textContent =
-        "";
-
-
-    if (!code) {
-
-        error.textContent =
-            "방 코드를 입력해주세요.";
-
-        return;
-
-    }
-
-
-    socket.emit(
-        "joinCodeRoom",
-        code,
-        response => {
-
-            if (
-                !response.success
-            ) {
-
-                error.textContent =
-                    response.message;
-
-                return;
-
-            }
-
-
-            closeRoomModal();
-
-
-            currentMode =
-                "codeRoom";
-
-
-            currentTargetSize =
-                null;
-
-
-            showScreen(
-                "waitingScreen"
-            );
-
-
-            document
-                .getElementById(
-                    "waitingTitle"
-                )
-                .textContent =
-                "방 대기실";
-
-
-            document
-                .getElementById(
-                    "waitingSubtitle"
-                )
-                .textContent =
-                "4명 이상 모이면 누구나 게임을 시작할 수 있습니다.";
-
-
-            const codeDisplay =
-                document.getElementById(
-                    "roomCodeDisplay"
-                );
-
-
-            codeDisplay.textContent =
-                response.code;
-
-
-            codeDisplay.classList.remove(
-                "hidden"
-            );
-
-
-            document
-                .getElementById(
-                    "startGameButton"
-                )
-                .classList
-                .remove(
-                    "hidden"
-                );
-
-        }
-    );
-
+function renderWaiting(list){
+  $("waitingPlayerGrid").innerHTML="";
+  list.forEach(p=>{
+    const d=document.createElement("div");
+    d.className="pill"+(p.nickname===myNickname?" me":"");
+    d.textContent=p.nickname===myNickname?`★ ${p.nickname} (나)`:p.nickname;
+    $("waitingPlayerGrid").appendChild(d);
+  });
 }
 
-
-// =====================================================
-// 랜덤 매칭
-// =====================================================
-
-function openMatchModal() {
-
-    document
-        .getElementById(
-            "matchModal"
-        )
-        .classList
-        .remove(
-            "hidden"
-        );
-
+function requestGameStart(){
+  const b=$("startGameButton");
+  if(b.disabled)return;
+  b.disabled=true;
+  socket.emit("requestGameStart",res=>{
+    if(!res.success){b.disabled=false;toast(res.message);}
+  });
 }
 
+socket.on("modeVoteStart",data=>{
+  currentMode="modeVote";
+  myGameModeVote=null;
+  myRoleInfo=null;
+  hideMini();
+  resetVoteUI();
+  showScreen("modeVoteScreen");
+  $("modeVoteProgress").textContent=`투표 완료 0 / ${data.totalPlayers}`;
+  renderSide();
+});
 
-function closeMatchModal() {
-
-    document
-        .getElementById(
-            "matchModal"
-        )
-        .classList
-        .add(
-            "hidden"
-        );
-
+function resetVoteUI(){
+  ["modeBasic","modeQuestion","modeFool"].forEach(id=>{
+    $(id).disabled=false;
+    $(id).classList.remove("selected");
+  });
+  $("basicVotes").textContent="0표";
+  $("questionVotes").textContent="0표";
+  $("foolVotes").textContent="0표";
+  $("modeVoteMessage").textContent="하나를 선택해주세요.";
 }
 
-
-function startMatchmaking(
-    targetSize
-) {
-
-    closeMatchModal();
-
-
-    socket.emit(
-        "joinMatchmaking",
-        targetSize,
-        response => {
-
-            if (
-                !response.success
-            ) {
-
-                showToast(
-                    response.message
-                );
-
-                return;
-
-            }
-
-
-            currentMode =
-                "matchmaking";
-
-
-            currentTargetSize =
-                response.targetSize;
-
-
-            currentRoom =
-                null;
-
-
-            showScreen(
-                "waitingScreen"
-            );
-
-
-            document
-                .getElementById(
-                    "waitingTitle"
-                )
-                .textContent =
-                `${currentTargetSize}인 랜덤 매칭`;
-
-
-            document
-                .getElementById(
-                    "waitingSubtitle"
-                )
-                .textContent =
-                "같은 인원수를 선택한 플레이어를 기다리고 있습니다.";
-
-
-            document
-                .getElementById(
-                    "roomCodeDisplay"
-                )
-                .classList
-                .add(
-                    "hidden"
-                );
-
-
-            document
-                .getElementById(
-                    "startGameButton"
-                )
-                .classList
-                .add(
-                    "hidden"
-                );
-
-        }
-    );
-
+function voteGameMode(mode){
+  if(myGameModeVote!==null)return;
+  socket.emit("voteGameMode",mode,res=>{
+    if(!res.success){toast(res.message);return;}
+    myGameModeVote=mode;
+    const map={basic:"modeBasic",question:"modeQuestion",fool:"modeFool"};
+    Object.values(map).forEach(id=>$(id).disabled=true);
+    $(map[mode]).classList.add("selected");
+    $("modeVoteMessage").textContent="✓ 투표 완료! 다른 플레이어를 기다리는 중...";
+  });
 }
 
-
-// =====================================================
-// 매칭 업데이트
-// =====================================================
-
-socket.on(
-    "matchmakingUpdate",
-    data => {
-
-        if (
-            currentMode !==
-            "matchmaking"
-        ) {
-            return;
-        }
-
-
-        if (
-            currentTargetSize !==
-            data.targetSize
-        ) {
-            return;
-        }
-
-
-        document
-            .getElementById(
-                "bigCount"
-            )
-            .textContent =
-            `${data.count} / ${data.targetSize}`;
-
-
-        currentDisplayPlayers =
-            data.players;
-
-
-        renderWaitingPlayers(
-            data.players
-        );
-
-
-        renderSidePlayerList();
-
-    }
-);
-
-
-// =====================================================
-// 랜덤 매칭 성공
-// =====================================================
-
-socket.on(
-    "randomMatched",
-    data => {
-
-        currentMode =
-            "matchedRoom";
-
-
-        currentRoom = {
-            id:
-                data.roomId,
-
-            type:
-                "random",
-
-            targetSize:
-                data.targetSize,
-
-            players:
-                data.players
-        };
-
-
-        currentDisplayPlayers =
-            data.players;
-
-
-        showScreen(
-            "waitingScreen"
-        );
-
-
-        document
-            .getElementById(
-                "waitingTitle"
-            )
-            .textContent =
-            "🎉 매칭 완료!";
-
-
-        document
-            .getElementById(
-                "waitingSubtitle"
-            )
-            .innerHTML =
-            `
-                ${data.targetSize}명이 모두 모였습니다.
-                <br>
-                게임 방식 투표로 이동합니다!
-            `;
-
-
-        document
-            .getElementById(
-                "roomCodeDisplay"
-            )
-            .classList
-            .add(
-                "hidden"
-            );
-
-
-        document
-            .getElementById(
-                "bigCount"
-            )
-            .textContent =
-            `${data.players.length} / ${data.targetSize}`;
-
-
-        document
-            .getElementById(
-                "startGameButton"
-            )
-            .classList
-            .add(
-                "hidden"
-            );
-
-
-        renderWaitingPlayers(
-            data.players
-        );
-
-
-        renderSidePlayerList();
-
-
-        showToast(
-            "랜덤 매칭 성공!"
-        );
-
-    }
-);
-
-
-// =====================================================
-// 방 정보
-// =====================================================
-
-socket.on(
-    "roomUpdate",
-    room => {
-
-        currentRoom =
-            room;
-
-
-        currentDisplayPlayers =
-            room.players;
-
-
-        if (
-            room.type === "code" &&
-            room.state === "waiting"
-        ) {
-
-            currentMode =
-                "codeRoom";
-
-
-            document
-                .getElementById(
-                    "bigCount"
-                )
-                .textContent =
-                `${room.count} / 8`;
-
-
-            const startButton =
-                document.getElementById(
-                    "startGameButton"
-                );
-
-
-            startButton.classList.remove(
-                "hidden"
-            );
-
-
-            if (
-                room.canStart
-            ) {
-
-                startButton.classList.add(
-                    "active"
-                );
-
-
-                startButton.disabled =
-                    false;
-
-            }
-
-            else {
-
-                startButton.classList.remove(
-                    "active"
-                );
-
-
-                startButton.disabled =
-                    true;
-
-            }
-
-        }
-
-
-        renderWaitingPlayers(
-            room.players
-        );
-
-
-        renderSidePlayerList();
-
-    }
-);
-
-
-// =====================================================
-// 대기방 참가자
-// =====================================================
-
-function renderWaitingPlayers(
-    players
-) {
-
-    const grid =
-        document.getElementById(
-            "waitingPlayerGrid"
-        );
-
-
-    grid.innerHTML =
-        "";
-
-
-    players.forEach(
-        player => {
-
-            const div =
-                document.createElement(
-                    "div"
-                );
-
-
-            div.className =
-                "waiting-player";
-
-
-            if (
-                player.nickname ===
-                myNickname
-            ) {
-
-                div.classList.add(
-                    "me"
-                );
-
-
-                div.textContent =
-                    `★ ${player.nickname} (나)`;
-
-            }
-
-            else {
-
-                div.textContent =
-                    player.nickname;
-
-            }
-
-
-            grid.appendChild(
-                div
-            );
-
-        }
-    );
-
+socket.on("modeVoteUpdate",d=>{
+  $("basicVotes").textContent=`${d.counts.basic}표`;
+  $("questionVotes").textContent=`${d.counts.question}표`;
+  $("foolVotes").textContent=`${d.counts.fool}표`;
+  $("modeVoteProgress").textContent=`투표 완료 ${d.voted} / ${d.total}`;
+});
+
+socket.on("modeVoteResult",d=>{
+  selectedGameMode=d.selectedMode;
+  currentMode="modeResult";
+  showScreen("modeResultScreen");
+  $("selectedModeName").textContent=modeName(d.selectedMode);
+  $("modeResultScores").innerHTML=`기본형 ${d.counts.basic}표 · 질문형 ${d.counts.question}표 · 바보형 ${d.counts.fool}표`;
+  if(d.tied){
+    $("tieMessage").innerHTML=`🎲 공동 1위!<br>${d.tiedModes.map(modeName).join(" / ")} 중 랜덤 선택`;
+    $("tieMessage").classList.remove("hidden");
+  }else $("tieMessage").classList.add("hidden");
+});
+
+socket.on("gameCountdownStart",d=>{
+  currentMode="countdown";
+  selectedGameMode=d.selectedMode;
+  showScreen("countdownScreen");
+  updateCountdown(d.seconds);
+  $("countdownMode").textContent=`${modeName(d.selectedMode)}으로 시작합니다.`;
+});
+socket.on("gameCountdownTick",d=>updateCountdown(d.seconds));
+
+function updateCountdown(sec){
+  const e=$("countdownNumber");
+  e.textContent=sec;
+  e.style.animation="none";
+  void e.offsetWidth;
+  e.style.animation="pop .5s ease";
 }
 
+socket.on("privateRoleInfo",data=>{
+  currentMode="roleReady";
+  myRoleInfo=data;
+  selectedGameMode=data.mode;
+  latestReadyStatuses=[];
+  showRole(data);
+  updateMini(data);
+  startRoleTimer(data.deadline);
+  showScreen("roleStageScreen");
+  renderSide();
+});
 
-// =====================================================
-// 방 게임 시작
-// =====================================================
+function showRole(data){
+  const rv=$("roleValue"),wv=$("wordValue");
+  rv.className="role";
+  wv.className="word";
 
-function requestGameStart() {
+  if(data.roleHidden){
+    $("roleLabel").textContent="당신에게 주어진 정보";
+    rv.textContent="역할은 공개되지 않습니다";
+    rv.classList.add("citizen");
+    $("categoryValue").textContent=data.category;
+    wv.textContent=data.word;
+  }else if(data.role==="liar"){
+    $("roleLabel").textContent="내 역할";
+    rv.textContent="🎭 라이어";
+    rv.classList.add("liar");
+    $("categoryValue").textContent=data.category;
+    wv.textContent="?????";
+    wv.classList.add("unknown");
+  }else{
+    $("roleLabel").textContent="내 역할";
+    rv.textContent="👤 시민";
+    rv.classList.add("citizen");
+    $("categoryValue").textContent=data.category;
+    wv.textContent=data.word;
+  }
 
-    const button =
-        document.getElementById(
-            "startGameButton"
-        );
-
-
-    if (
-        button.disabled
-    ) {
-        return;
-    }
-
-
-    button.disabled =
-        true;
-
-
-    socket.emit(
-        "requestGameStart",
-        response => {
-
-            if (
-                !response.success
-            ) {
-
-                button.disabled =
-                    false;
-
-
-                showToast(
-                    response.message
-                );
-
-            }
-
-        }
-    );
-
+  const b=$("roleReadyButton");
+  b.disabled=false;
+  b.classList.remove("done");
+  b.textContent="✓ 준비 완료";
+  $("roleTimerWrap").classList.remove("hidden");
 }
 
-
-// =====================================================
-// 게임 방식 투표 시작
-// =====================================================
-
-socket.on(
-    "modeVoteStart",
-    data => {
-
-        currentMode =
-            "modeVote";
-
-
-        myGameModeVote =
-            null;
-
-
-        resetModeVoteUI();
-
-
-        showScreen(
-            "modeVoteScreen"
-        );
-
-
-        document
-            .getElementById(
-                "modeVoteProgress"
-            )
-            .textContent =
-            `투표 완료 0 / ${data.totalPlayers}`;
-
-
-        renderSidePlayerList();
-
-    }
-);
-
-
-function resetModeVoteUI() {
-
-    const buttons = [
-
-        document.getElementById(
-            "modeBasic"
-        ),
-
-        document.getElementById(
-            "modeQuestion"
-        ),
-
-        document.getElementById(
-            "modeFool"
-        )
-
-    ];
-
-
-    buttons.forEach(
-        button => {
-
-            button.disabled =
-                false;
-
-            button.classList.remove(
-                "selected"
-            );
-
-            button.classList.remove(
-                "locked"
-            );
-
-        }
-    );
-
-
-    document
-        .getElementById(
-            "basicVotes"
-        )
-        .textContent =
-        "0표";
-
-
-    document
-        .getElementById(
-            "questionVotes"
-        )
-        .textContent =
-        "0표";
-
-
-    document
-        .getElementById(
-            "foolVotes"
-        )
-        .textContent =
-        "0표";
-
-
-    document
-        .getElementById(
-            "modeVoteMessage"
-        )
-        .textContent =
-        "하나를 선택해주세요.";
-
+function startRoleTimer(deadline){
+  clearInterval(roleTimerInterval);
+  const tick=()=>{
+    const left=Math.max(0,Math.ceil((deadline-Date.now())/1000));
+    $("roleTimer").textContent=left;
+    if(left<=0){clearInterval(roleTimerInterval);roleTimerInterval=null;}
+  };
+  tick();
+  roleTimerInterval=setInterval(tick,250);
 }
 
+function sendRoleReady(){
+  const b=$("roleReadyButton");
+  if(b.disabled)return;
+  b.disabled=true;
 
-// =====================================================
-// 게임 방식 투표
-// =====================================================
-
-function voteGameMode(mode) {
-
-    if (
-        myGameModeVote !==
-        null
-    ) {
-
-        return;
-
-    }
-
-
-    socket.emit(
-        "voteGameMode",
-        mode,
-        response => {
-
-            if (
-                !response.success
-            ) {
-
-                showToast(
-                    response.message
-                );
-
-                return;
-
-            }
-
-
-            myGameModeVote =
-                mode;
-
-
-            const buttonMap = {
-
-                basic:
-                    document.getElementById(
-                        "modeBasic"
-                    ),
-
-                question:
-                    document.getElementById(
-                        "modeQuestion"
-                    ),
-
-                fool:
-                    document.getElementById(
-                        "modeFool"
-                    )
-
-            };
-
-
-            Object.values(
-                buttonMap
-            ).forEach(
-                button => {
-
-                    button.disabled =
-                        true;
-
-                    button.classList.add(
-                        "locked"
-                    );
-
-                }
-            );
-
-
-            buttonMap[
-                mode
-            ].classList.add(
-                "selected"
-            );
-
-
-            document
-                .getElementById(
-                    "modeVoteMessage"
-                )
-                .textContent =
-                "✓ 투표 완료! 다른 플레이어를 기다리는 중...";
-
-        }
-    );
-
+  socket.emit("roleReady",res=>{
+    if(!res.success){b.disabled=false;toast(res.message);return;}
+    clearInterval(roleTimerInterval);roleTimerInterval=null;
+    $("roleTimerWrap").classList.add("hidden");
+    b.classList.add("done");
+    b.textContent="✓ 준비 완료됨";
+  });
 }
 
-
-// =====================================================
-// 게임 방식 득표 업데이트
-// =====================================================
-
-socket.on(
-    "modeVoteUpdate",
-    data => {
-
-        document
-            .getElementById(
-                "basicVotes"
-            )
-            .textContent =
-            `${data.counts.basic}표`;
-
-
-        document
-            .getElementById(
-                "questionVotes"
-            )
-            .textContent =
-            `${data.counts.question}표`;
-
-
-        document
-            .getElementById(
-                "foolVotes"
-            )
-            .textContent =
-            `${data.counts.fool}표`;
-
-
-        document
-            .getElementById(
-                "modeVoteProgress"
-            )
-            .textContent =
-            `투표 완료 ${data.voted} / ${data.total}`;
-
-    }
-);
-
-
-// =====================================================
-// 게임 방식 결정
-// =====================================================
-
-socket.on(
-    "modeVoteResult",
-    data => {
-
-        selectedGameMode =
-            data.selectedMode;
-
-
-        currentMode =
-            "modeResult";
-
-
-        showScreen(
-            "modeResultScreen"
-        );
-
-
-        document
-            .getElementById(
-                "selectedModeName"
-            )
-            .textContent =
-            getModeName(
-                data.selectedMode
-            );
-
-
-        document
-            .getElementById(
-                "modeResultScores"
-            )
-            .innerHTML =
-            `
-                기본형 ${data.counts.basic}표
-                &nbsp;&nbsp;·&nbsp;&nbsp;
-                질문형 ${data.counts.question}표
-                &nbsp;&nbsp;·&nbsp;&nbsp;
-                바보형 ${data.counts.fool}표
-            `;
-
-
-        const tie =
-            document.getElementById(
-                "tieMessage"
-            );
-
-
-        if (
-            data.tied
-        ) {
-
-            const names =
-                data.tiedModes
-                    .map(
-                        mode =>
-                            getModeName(
-                                mode
-                            )
-                    )
-                    .join(
-                        " / "
-                    );
-
-
-            tie.innerHTML =
-                `
-                    🎲 공동 1위!
-                    <br>
-                    ${names} 중 랜덤으로 선택되었습니다.
-                `;
-
-
-            tie.classList.remove(
-                "hidden"
-            );
-
-        }
-
-        else {
-
-            tie.classList.add(
-                "hidden"
-            );
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// 5초 카운트다운
-// =====================================================
-
-socket.on(
-    "gameCountdownStart",
-    data => {
-
-        currentMode =
-            "countdown";
-
-
-        selectedGameMode =
-            data.selectedMode;
-
-
-        showScreen(
-            "countdownScreen"
-        );
-
-
-        updateCountdown(
-            data.seconds
-        );
-
-
-        document
-            .getElementById(
-                "countdownMode"
-            )
-            .textContent =
-            `${getModeName(data.selectedMode)}으로 시작합니다.`;
-
-    }
-);
-
-
-socket.on(
-    "gameCountdownTick",
-    data => {
-
-        updateCountdown(
-            data.seconds
-        );
-
-    }
-);
-
-
-function updateCountdown(
-    seconds
-) {
-
-    const element =
-        document.getElementById(
-            "countdownNumber"
-        );
-
-
-    element.textContent =
-        seconds;
-
-
-    element.style.animation =
-        "none";
-
-
-    void element.offsetWidth;
-
-
-    element.style.animation =
-        "countdownPop 0.5s ease";
-
+socket.on("roleReadyStatus",d=>{
+  latestReadyStatuses=d.players;
+  currentDisplayPlayers=d.players.map(p=>({id:p.id,nickname:p.nickname}));
+  $("readyStatusTitle").textContent=`준비 완료 ${d.readyCount} / ${d.total}`;
+  $("readyStatusGrid").innerHTML="";
+  d.players.forEach(p=>{
+    const x=document.createElement("div");
+    x.className="ready-pill"+(p.ready?" yes":"");
+    x.textContent=p.ready?`✓ ${p.nickname}`:`… ${p.nickname}`;
+    $("readyStatusGrid").appendChild(x);
+  });
+  renderSide();
+});
+
+socket.on("allPlayersReady",d=>{
+  clearInterval(roleTimerInterval);roleTimerInterval=null;
+  currentMode="gameplay";
+  currentDisplayPlayers=d.players;
+  showScreen("gamePlaceholderScreen");
+  $("myInfoBox").classList.remove("hidden");
+  renderSide();
+});
+
+socket.on("roleStageRestarting",d=>{
+  clearInterval(roleTimerInterval);roleTimerInterval=null;
+  toast(d.message);
+  $("roleReadyButton").disabled=true;
+  $("roleReadyButton").textContent="역할 다시 배정 중...";
+});
+
+socket.on("readyTimeoutKick",d=>{
+  clearInterval(roleTimerInterval);roleTimerInterval=null;
+  currentMode="lobby";
+  currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
+  myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
+  hideMini();
+  $("warningMessage").textContent=d.message;
+  $("warningOverlay").classList.remove("hidden");
+  setTimeout(()=>{
+    $("warningOverlay").classList.add("hidden");
+    showScreen("mainScreen");
+    renderSide();
+  },2200);
+});
+
+function updateMini(data){
+  $("myInfoBox").classList.remove("hidden");
+  if(data.roleHidden){
+    $("miniRoleLine").innerHTML=`유형: <span class="imp">${modeName(data.mode)}</span>`;
+    $("miniCategoryLine").innerHTML=`주제: <span class="imp">${escapeHTML(data.category)}</span>`;
+    $("miniWordLine").innerHTML=`제시어: <span class="imp">${escapeHTML(data.word)}</span>`;
+  }else if(data.role==="liar"){
+    $("miniRoleLine").innerHTML=`역할: <span class="bad">🎭 라이어</span>`;
+    $("miniCategoryLine").innerHTML=`주제: <span class="imp">${escapeHTML(data.category)}</span>`;
+    $("miniWordLine").innerHTML=`제시어: <span class="bad">?????</span>`;
+  }else{
+    $("miniRoleLine").innerHTML=`역할: <span class="imp">👤 시민</span>`;
+    $("miniCategoryLine").innerHTML=`주제: <span class="imp">${escapeHTML(data.category)}</span>`;
+    $("miniWordLine").innerHTML=`제시어: <span class="imp">${escapeHTML(data.word)}</span>`;
+  }
+}
+function hideMini(){$("myInfoBox").classList.add("hidden");}
+
+socket.on("roomAborted",d=>{
+  clearInterval(roleTimerInterval);roleTimerInterval=null;
+  toast(d.message);
+  currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
+  currentMode="lobby";myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
+  hideMini();
+  setTimeout(()=>{showScreen("mainScreen");renderSide();},1000);
+});
+
+function leaveCurrentPlace(){
+  if(currentMode==="matchmaking"){
+    socket.emit("cancelMatchmaking",goBackToLobby);
+  }else if(currentMode==="codeRoom"||currentMode==="matchedRoom"){
+    socket.emit("leaveRoom",goBackToLobby);
+  }else goBackToLobby();
 }
 
-
-// =====================================================
-// 다음 단계
-// =====================================================
-
-socket.on(
-    "roleStagePlaceholder",
-    data => {
-
-        currentMode =
-            "roleStage";
-
-
-        selectedGameMode =
-            data.selectedMode;
-
-
-        showScreen(
-            "nextStageScreen"
-        );
-
-
-        document
-            .getElementById(
-                "nextStageMode"
-            )
-            .textContent =
-            getModeName(
-                data.selectedMode
-            );
-
-
-        renderSidePlayerList();
-
-    }
-);
-
-
-// =====================================================
-// 인원 부족으로 방 종료
-// =====================================================
-
-socket.on(
-    "roomAborted",
-    data => {
-
-        showToast(
-            data.message
-        );
-
-
-        currentRoom =
-            null;
-
-        currentTargetSize =
-            null;
-
-        currentDisplayPlayers =
-            [];
-
-        currentMode =
-            "lobby";
-
-        myGameModeVote =
-            null;
-
-        selectedGameMode =
-            null;
-
-
-        setTimeout(
-            () => {
-
-                showScreen(
-                    "mainScreen"
-                );
-
-
-                renderSidePlayerList();
-
-            },
-            1000
-        );
-
-    }
-);
-
-
-// =====================================================
-// 나가기
-// =====================================================
-
-function leaveCurrentPlace() {
-
-    if (
-        currentMode ===
-        "matchmaking"
-    ) {
-
-        socket.emit(
-            "cancelMatchmaking",
-            () => {
-
-                goBackToLobby();
-
-            }
-        );
-
-        return;
-
-    }
-
-
-    if (
-        currentMode ===
-        "codeRoom" ||
-        currentMode ===
-        "matchedRoom"
-    ) {
-
-        socket.emit(
-            "leaveRoom",
-            () => {
-
-                goBackToLobby();
-
-            }
-        );
-
-        return;
-
-    }
-
-
-    goBackToLobby();
-
+function goBackToLobby(){
+  currentMode="lobby";currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
+  myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
+  hideMini();showScreen("mainScreen");renderSide();
 }
 
+socket.on("onlinePlayerList",list=>{onlinePlayers=list;renderSide();});
 
-function goBackToLobby() {
+function renderSide(){
+  const list=$("playerList");
+  list.innerHTML="";
+  let source;
 
-    currentMode =
-        "lobby";
+  if(currentMode==="lobby"){
+    source=onlinePlayers;
+    $("playerListTitle").textContent=`👥 현재 접속자 ${source.length}명`;
+  }else{
+    source=currentDisplayPlayers;
+    $("playerListTitle").textContent=`👥 함께 플레이 ${source.length}명`;
+  }
 
-    currentRoom =
-        null;
+  source.forEach(p=>{
+    const row=document.createElement("div");
+    row.className="player-row"+(p.nickname===myNickname?" me":"");
 
-    currentTargetSize =
-        null;
+    const st=latestReadyStatuses.find(s=>s.id===p.id);
+    let prefix="• ";
 
-    currentDisplayPlayers =
-        [];
+    if(st&&currentMode==="roleReady"){
+      prefix=st.ready?"✓ ":"… ";
+      row.classList.add(st.ready?"ready":"unready");
+    }
 
-    myGameModeVote =
-        null;
-
-    selectedGameMode =
-        null;
-
-
-    showScreen(
-        "mainScreen"
-    );
-
-
-    renderSidePlayerList();
-
+    row.textContent=`${prefix}${p.nickname}${p.nickname===myNickname?" (나)":""}`;
+    list.appendChild(row);
+  });
 }
 
-
-// =====================================================
-// 온라인 플레이어
-// =====================================================
-
-socket.on(
-    "onlinePlayerList",
-    players => {
-
-        onlinePlayers =
-            players;
-
-
-        renderSidePlayerList();
-
-    }
-);
-
-
-// =====================================================
-// 오른쪽 아래 플레이어
-// =====================================================
-
-function renderSidePlayerList() {
-
-    const list =
-        document.getElementById(
-            "playerList"
-        );
-
-
-    const title =
-        document.getElementById(
-            "playerListTitle"
-        );
-
-
-    list.innerHTML =
-        "";
-
-
-    let sourcePlayers;
-
-
-    if (
-        currentMode ===
-        "lobby"
-    ) {
-
-        sourcePlayers =
-            onlinePlayers;
-
-
-        title.textContent =
-            `👥 현재 접속자 ${sourcePlayers.length}명`;
-
-    }
-
-    else {
-
-        sourcePlayers =
-            currentDisplayPlayers;
-
-
-        title.textContent =
-            `👥 함께 플레이 ${sourcePlayers.length}명`;
-
-    }
-
-
-    sourcePlayers.forEach(
-        player => {
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-
-            row.className =
-                "player-row";
-
-
-            if (
-                player.nickname ===
-                myNickname
-            ) {
-
-                row.classList.add(
-                    "me"
-                );
-
-
-                row.textContent =
-                    `★ ${player.nickname} (나)`;
-
-            }
-
-            else {
-
-                row.textContent =
-                    `• ${player.nickname}`;
-
-            }
-
-
-            list.appendChild(
-                row
-            );
-
-        }
-    );
-
-}
-
-
-// =====================================================
-// 서버 연결
-// =====================================================
-
-socket.on(
-    "disconnect",
-    () => {
-
-        showToast(
-            "서버와의 연결이 끊어졌습니다."
-        );
-
-    }
-);
-
+socket.on("disconnect",()=>toast("서버와의 연결이 끊어졌습니다."));
 </script>
-
 </body>
-
 </html>
