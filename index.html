@@ -466,6 +466,105 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
   font-size:16px;
 }
 
+
+/* =====================================================
+   게임 발언 기록
+===================================================== */
+
+.game-history-box{
+  position:fixed;
+  z-index:155;
+  top:16px;
+  right:16px;
+  width:min(300px,30vw);
+  max-height:38vh;
+  display:flex;
+  flex-direction:column;
+  border:1px solid rgba(255,255,255,.17);
+  border-radius:18px;
+  background:rgba(8,8,8,.80);
+  backdrop-filter:blur(10px);
+  box-shadow:0 12px 38px rgba(0,0,0,.35);
+  overflow:hidden;
+}
+
+.game-history-header{
+  flex:0 0 auto;
+  padding:12px 13px 10px;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  font-size:14px;
+  font-weight:1000;
+  color:#e8e8e8;
+}
+
+.game-history-list{
+  overflow-y:auto;
+  padding:9px 10px 12px;
+  scroll-behavior:smooth;
+}
+
+.history-round{
+  margin:8px 2px 5px;
+  color:#aeb5ff;
+  font-size:12px;
+  font-weight:900;
+}
+
+.history-question{
+  margin:5px 0 8px;
+  padding:8px 9px;
+  border-radius:10px;
+  background:#25283b;
+  color:#dfe2ff;
+  font-size:12px;
+  line-height:1.4;
+}
+
+.history-item{
+  margin:6px 0;
+  padding:8px 9px;
+  border-radius:11px;
+  background:#252525;
+  line-height:1.35;
+  font-size:13px;
+  word-break:break-word;
+}
+
+.history-name{
+  color:#75e8f5;
+  font-weight:900;
+  margin-right:5px;
+}
+
+.history-timeout{
+  color:#aaa;
+  font-style:italic;
+}
+
+@media(max-width:700px){
+  .game-history-box{
+    top:8px;
+    right:8px;
+    width:175px;
+    max-height:28vh;
+  }
+
+  .game-history-header{
+    padding:8px 9px;
+    font-size:12px;
+  }
+
+  .game-history-list{
+    padding:6px 7px 8px;
+  }
+
+  .history-item,
+  .history-question,
+  .history-round{
+    font-size:11px;
+  }
+}
+
 @media(max-width:700px){.mode-grid{grid-template-columns:1fr}.mode{min-height:185px}.size-grid{grid-template-columns:repeat(3,1fr)}.card{padding-bottom:185px}.side,.mini{width:145px;bottom:8px}.side{right:8px}.mini{left:8px}}
 </style>
 </head>
@@ -853,6 +952,14 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
   </div>
 </section>
 
+
+<div id="gameHistoryBox" class="game-history-box hidden">
+  <div class="game-history-header">
+    📜 발언 기록
+  </div>
+  <div id="gameHistoryList" class="game-history-list"></div>
+</div>
+
 <div id="myInfoBox" class="mini hidden">
   <h4>🔐 내 정보</h4>
   <div id="miniRoleLine"></div>
@@ -894,6 +1001,11 @@ let gameplayPlayers=[];
 let turnTimerInterval=null;
 let bubbleTimers=new Map();
 let currentTurnPlayerId=null;
+let arenaShuffleInterval=null;
+let arenaSettleTimer=null;
+let arenaMessageTimer=null;
+let lastHistoryRound=null;
+let lastHistoryQuestion=null;
 let myLiarVote=null;
 let finalStatementTimerInterval=null;
 let guessTimerInterval=null;
@@ -1203,14 +1315,19 @@ socket.on("gameplaySetup",d=>{
   clearInterval(roleTimerInterval);
   roleTimerInterval=null;
 
+  clearArenaShuffle();
+
   currentMode="gameplay";
   gameplayPlayers=d.players;
   currentDisplayPlayers=d.players;
   latestReadyStatuses=[];
   currentTurnPlayerId=null;
 
+  resetGameHistory();
+
   showScreen("gameplayScreen");
   $("myInfoBox").classList.remove("hidden");
+  $("gameHistoryBox").classList.remove("hidden");
 
   $("centerGamePanel").classList.add("hidden");
   $("speakingInputWrap").classList.add("hidden");
@@ -1220,15 +1337,34 @@ socket.on("gameplaySetup",d=>{
   renderArena(d.players,true);
   renderSide();
 
-  setTimeout(()=>{
-    settleArena(d.players);
+  // 브라우저가 백그라운드 탭의 타이머를 늦추더라도
+  // 마지막에는 무조건 정위치로 고정되도록 관리한다.
+  arenaSettleTimer=setTimeout(()=>{
+    forceSettleArena(d.players);
     $("shuffleMessage").textContent="✨ 발언 순서 결정!";
   },1900);
 
-  setTimeout(()=>{
+  arenaMessageTimer=setTimeout(()=>{
     $("shuffleMessage").classList.add("hidden");
   },2700);
 });
+
+function clearArenaShuffle(){
+  if(arenaShuffleInterval){
+    clearInterval(arenaShuffleInterval);
+    arenaShuffleInterval=null;
+  }
+
+  if(arenaSettleTimer){
+    clearTimeout(arenaSettleTimer);
+    arenaSettleTimer=null;
+  }
+
+  if(arenaMessageTimer){
+    clearTimeout(arenaMessageTimer);
+    arenaMessageTimer=null;
+  }
+}
 
 function renderArena(list,shuffling=false){
   const arena=$("arena");
@@ -1249,7 +1385,6 @@ function renderArena(list,shuffling=false){
 
     bar.appendChild(badge);
     bar.appendChild(name);
-
     arena.appendChild(bar);
 
     if(shuffling){
@@ -1261,7 +1396,8 @@ function renderArena(list,shuffling=false){
 
   if(shuffling){
     let hops=0;
-    const shuffleId=setInterval(()=>{
+
+    arenaShuffleInterval=setInterval(()=>{
       hops++;
 
       list.forEach(p=>{
@@ -1274,7 +1410,8 @@ function renderArena(list,shuffling=false){
       });
 
       if(hops>=6){
-        clearInterval(shuffleId);
+        clearInterval(arenaShuffleInterval);
+        arenaShuffleInterval=null;
       }
     },260);
   }
@@ -1282,6 +1419,7 @@ function renderArena(list,shuffling=false){
 
 function settleArena(list){
   const n=list.length;
+  if(!n)return;
 
   list.forEach((p,i)=>{
     const bar=$(`playerBar_${p.id}`);
@@ -1303,6 +1441,64 @@ function settleArena(list){
     bar.style.top=`${y}%`;
     bar.style.transform="translate(-50%,-50%)";
   });
+}
+
+function forceSettleArena(list=gameplayPlayers){
+  if(arenaShuffleInterval){
+    clearInterval(arenaShuffleInterval);
+    arenaShuffleInterval=null;
+  }
+
+  settleArena(list);
+}
+
+function resetGameHistory(){
+  lastHistoryRound=null;
+  lastHistoryQuestion=null;
+  $("gameHistoryList").innerHTML="";
+}
+
+function addSpeechToHistory(d){
+  const list=$("gameHistoryList");
+  if(!list)return;
+
+  if(d.round!==lastHistoryRound){
+    lastHistoryRound=d.round;
+    lastHistoryQuestion=null;
+
+    const round=document.createElement("div");
+    round.className="history-round";
+    round.textContent=`라운드 ${d.round}${d.totalRounds?` / ${d.totalRounds}`:""}`;
+    list.appendChild(round);
+  }
+
+  if(d.question && d.question!==lastHistoryQuestion){
+    lastHistoryQuestion=d.question;
+
+    const q=document.createElement("div");
+    q.className="history-question";
+    q.textContent=`❓ ${d.question}`;
+    list.appendChild(q);
+  }
+
+  const item=document.createElement("div");
+  item.className="history-item";
+
+  const name=document.createElement("span");
+  name.className="history-name";
+  name.textContent=`${d.player.nickname}:`;
+
+  const text=document.createElement("span");
+  if(d.timedOut){
+    text.className="history-timeout";
+  }
+  text.textContent=` ${d.text}`;
+
+  item.appendChild(name);
+  item.appendChild(text);
+  list.appendChild(item);
+
+  list.scrollTop=list.scrollHeight;
 }
 
 function updateCurrentBar(playerId){
@@ -1328,6 +1524,12 @@ socket.on("gameRosterUpdate",d=>{
 socket.on("turnStarted",d=>{
   currentMode="gameplay";
   currentTurnPlayerId=d.currentPlayer.id;
+
+  // 서버의 실제 첫 턴 이벤트를 최종 기준으로 사용한다.
+  // 클라이언트 애니메이션 타이머가 지연됐더라도 여기서 즉시 풀어준다.
+  clearArenaShuffle();
+  forceSettleArena(gameplayPlayers);
+  $("shuffleMessage").classList.add("hidden");
 
   updateCurrentBar(d.currentPlayer.id);
 
@@ -1450,6 +1652,8 @@ socket.on("speechBubble",d=>{
   if(d.player.id===socket.id){
     $("speakingInputWrap").classList.add("hidden");
   }
+
+  addSpeechToHistory(d);
 
   const bar=$(`playerBar_${d.player.id}`);
   if(!bar)return;
@@ -1826,6 +2030,7 @@ socket.on("gameResult",d=>{
   currentMode="result";
 
   showScreen("finalResultScreen");
+  $("gameHistoryBox").classList.add("hidden");
 
   $("guessInputWrap").classList.add("hidden");
 
@@ -1925,6 +2130,7 @@ socket.on("rematchStarting",d=>{
   myLiarVote=null;
 
   hideMini();
+  $("gameHistoryBox").classList.add("hidden");
 
   toast(d.message);
 });
@@ -1980,6 +2186,7 @@ socket.on("roomAborted",d=>{
   currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
   currentMode="lobby";myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
   hideMini();
+  $("gameHistoryBox").classList.add("hidden");
   setTimeout(()=>{showScreen("mainScreen");renderSide();},1000);
 });
 
@@ -1997,7 +2204,9 @@ function goBackToLobby(){
   gameplayPlayers=[];currentTurnPlayerId=null;myLiarVote=null;
   clearInterval(turnTimerInterval);turnTimerInterval=null;
   clearInterval(finalStatementTimerInterval);finalStatementTimerInterval=null;
-  hideMini();showScreen("mainScreen");renderSide();
+  hideMini();
+  clearArenaShuffle();
+  $("gameHistoryBox").classList.add("hidden");showScreen("mainScreen");renderSide();
 }
 
 socket.on("onlinePlayerList",list=>{onlinePlayers=list;renderSide();});
