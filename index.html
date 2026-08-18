@@ -51,6 +51,208 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
 .mini{position:fixed;z-index:145;left:14px;bottom:14px;width:205px;padding:13px;background:rgba(5,5,5,.78);border:1px solid rgba(255,255,255,.17);border-radius:17px;backdrop-filter:blur(10px);font-size:14px}.mini div{margin:5px 0}.imp{color:#aeb5ff;font-weight:900}.bad{color:#ff8585;font-weight:900}
 .toast{position:fixed;z-index:500;top:22px;left:50%;transform:translateX(-50%);padding:12px 20px;background:#151515;border:1px solid #555;border-radius:14px;font-weight:800}
 .warn-bg{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.84);display:flex;align-items:center;justify-content:center;padding:20px}.warn{width:min(92vw,480px);padding:32px;background:#2a2020;border:2px solid #d26060;border-radius:24px;text-align:center}.warn h2{color:#ff9292}
+
+/* =====================================================
+   5단계: 다각형 게임 화면 / 발언
+===================================================== */
+.arena-screen{
+  width:100%;
+  min-height:100vh;
+  position:relative;
+  overflow:hidden;
+}
+.arena{
+  position:absolute;
+  inset:0;
+}
+.player-bar{
+  position:absolute;
+  width:clamp(118px,16vw,180px);
+  min-height:48px;
+  padding:11px 14px;
+  border-radius:999px;
+  background:#303030;
+  border:2px solid #5a5a5a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-weight:900;
+  text-align:center;
+  transform:translate(-50%,-50%);
+  transition:left .65s cubic-bezier(.2,.9,.2,1),top .65s cubic-bezier(.2,.9,.2,1),transform .25s,background .25s,border .25s,box-shadow .25s;
+  z-index:12;
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+}
+.player-bar.me{
+  border-color:#78e7ff;
+  background:#20414a;
+  box-shadow:0 0 0 3px rgba(120,231,255,.15),0 0 28px rgba(120,231,255,.28);
+}
+.player-bar.current{
+  background:#65531e;
+  border-color:#ffd166;
+  transform:translate(-50%,-50%) scale(1.12);
+  box-shadow:0 0 32px rgba(255,209,102,.45);
+}
+.player-bar .turn-badge{
+  font-size:11px;
+  color:#ffd166;
+  white-space:nowrap;
+}
+.speech-bubble{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 10px);
+  transform:translateX(-50%);
+  width:max-content;
+  max-width:min(240px,58vw);
+  padding:9px 12px;
+  border-radius:14px;
+  background:#fff;
+  color:#171717;
+  font-size:14px;
+  line-height:1.35;
+  font-weight:800;
+  word-break:break-word;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  pointer-events:none;
+  animation:bubbleIn .18s ease;
+}
+.speech-bubble:after{
+  content:"";
+  position:absolute;
+  top:100%;
+  left:50%;
+  transform:translateX(-50%);
+  border:7px solid transparent;
+  border-top-color:#fff;
+}
+.speech-bubble.timeout{
+  background:#444;
+  color:#ddd;
+}
+.speech-bubble.timeout:after{
+  border-top-color:#444;
+}
+@keyframes bubbleIn{
+  from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.92)}
+  to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+}
+.center-game-panel{
+  position:absolute;
+  z-index:20;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(86vw,460px);
+  padding:22px 22px;
+  border-radius:24px;
+  background:rgba(18,18,18,.86);
+  border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(12px);
+  text-align:center;
+  box-shadow:0 20px 70px rgba(0,0,0,.35);
+}
+.round-label{
+  color:#aeb5ff;
+  font-weight:900;
+  font-size:15px;
+  margin-bottom:7px;
+}
+.turn-name{
+  font-size:clamp(25px,5vw,37px);
+  font-weight:1000;
+  margin:7px 0;
+}
+.question-box{
+  margin:13px 0 0;
+  padding:12px;
+  border-radius:14px;
+  background:#25283b;
+  color:#dfe2ff;
+  line-height:1.45;
+  font-weight:800;
+}
+.turn-timer{
+  margin:14px auto 0;
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  border:4px solid #ffd166;
+  background:#151515;
+  font-size:23px;
+  font-weight:1000;
+}
+.speaking-input-wrap{
+  position:fixed;
+  z-index:180;
+  left:50%;
+  bottom:26px;
+  transform:translateX(-50%);
+  width:min(92vw,540px);
+  padding:15px;
+  border-radius:20px;
+  background:rgba(18,18,18,.94);
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(12px);
+  box-shadow:0 16px 50px rgba(0,0,0,.4);
+}
+.speaking-input-row{
+  display:flex;
+  gap:8px;
+}
+.speaking-input{
+  flex:1;
+  min-width:0;
+  padding:13px 14px;
+  border-radius:14px;
+  border:2px solid #555;
+  background:#fff;
+  color:#111;
+  outline:none;
+  font-size:16px;
+}
+.speak-send{
+  flex:0 0 auto;
+  padding:0 18px;
+  border-radius:14px;
+  background:#5965ef;
+  color:white;
+  font-weight:900;
+}
+.char-count{
+  margin-top:7px;
+  color:#aaa;
+  font-size:12px;
+  text-align:right;
+}
+.shuffle-message{
+  position:absolute;
+  z-index:30;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:clamp(32px,8vw,60px);
+  font-weight:1000;
+  text-shadow:0 5px 25px rgba(0,0,0,.5);
+  pointer-events:none;
+}
+.stage-complete-card{
+  width:min(92vw,650px);
+  padding:42px 30px 130px;
+  border-radius:30px;
+  background:#222;
+  border:2px solid #444;
+  text-align:center;
+}
+.stage-complete-card h1{
+  font-size:clamp(30px,8vw,46px);
+}
+
 @media(max-width:700px){.mode-grid{grid-template-columns:1fr}.mode{min-height:185px}.size-grid{grid-template-columns:repeat(3,1fr)}.card{padding-bottom:185px}.side,.mini{width:145px;bottom:8px}.side{right:8px}.mini{left:8px}}
 </style>
 </head>
@@ -154,16 +356,48 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
   </div>
 </section>
 
-<section id="gamePlaceholderScreen" class="screen hidden">
-  <div class="card">
-    <div class="title">🎭 전원 준비 완료!</div>
-    <div class="sub">
-      역할과 제시어 배정이 완료되었습니다.<br><br>
-      왼쪽 아래 <b>내 정보</b>는 게임 중에도 계속 남습니다.<br><br>
-      다음 단계에서 다각형 플레이어 배치, 야바위 섞기, 랜덤 발언 순서를 넣습니다.
+
+<section id="gameplayScreen" class="screen hidden">
+  <div class="arena-screen">
+    <div id="arena" class="arena"></div>
+
+    <div id="shuffleMessage" class="shuffle-message hidden">
+      🎲 순서를 섞는 중...
+    </div>
+
+    <div id="centerGamePanel" class="center-game-panel hidden">
+      <div id="roundLabel" class="round-label"></div>
+      <div id="turnName" class="turn-name"></div>
+      <div id="turnInstruction" class="sub" style="margin:6px 0 0"></div>
+      <div id="questionBox" class="question-box hidden"></div>
+      <div id="turnTimer" class="turn-timer">20</div>
+    </div>
+
+    <div id="speakingInputWrap" class="speaking-input-wrap hidden">
+      <div id="inputPrompt" class="sub" style="margin:0 0 8px"></div>
+      <div class="speaking-input-row">
+        <input
+          id="speakingInput"
+          class="speaking-input"
+          maxlength="30"
+          autocomplete="off"
+          placeholder="최대 30자"
+        >
+        <button class="speak-send" onclick="submitSpeech()">말하기</button>
+      </div>
+      <div id="charCount" class="char-count">0 / 30</div>
     </div>
   </div>
 </section>
+
+<section id="speakingFinishedScreen" class="screen hidden">
+  <div class="stage-complete-card">
+    <h1>🗣️ 발언 종료!</h1>
+    <p>모든 플레이어의 발언 라운드가 끝났습니다.</p>
+    <p>다음 단계에서 <b>라이어 투표 + 동점 재투표 + 최후의 발언</b>을 연결합니다.</p>
+  </div>
+</section>
+
 
 <div id="roomModal" class="modal-bg hidden">
   <div class="modal">
@@ -230,13 +464,17 @@ let selectedGameMode=null;
 let myRoleInfo=null;
 let roleTimerInterval=null;
 let latestReadyStatuses=[];
+let gameplayPlayers=[];
+let turnTimerInterval=null;
+let bubbleTimers=new Map();
+let currentTurnPlayerId=null;
 let toastTimer=null;
 
 const $=id=>document.getElementById(id);
 const modeName=m=>m==="basic"?"① 기본형":m==="question"?"② 질문형":m==="fool"?"③ 바보형":m;
 
 function showScreen(id){
-  ["nicknameScreen","mainScreen","waitingScreen","modeVoteScreen","modeResultScreen","countdownScreen","roleStageScreen","gamePlaceholderScreen"]
+  ["nicknameScreen","mainScreen","waitingScreen","modeVoteScreen","modeResultScreen","countdownScreen","roleStageScreen","gameplayScreen","speakingFinishedScreen"]
     .forEach(x=>$(x).classList.add("hidden"));
   $(id).classList.remove("hidden");
 }
@@ -526,16 +764,308 @@ socket.on("roleReadyStatus",d=>{
 });
 
 socket.on("allPlayersReady",d=>{
-  clearInterval(roleTimerInterval);roleTimerInterval=null;
-  currentMode="gameplay";
+  // 5단계에서는 실제 화면 전환은 gameplaySetup 이벤트가 담당
   currentDisplayPlayers=d.players;
-  showScreen("gamePlaceholderScreen");
+  renderSide();
+});
+
+socket.on("gameplaySetup",d=>{
+  clearInterval(roleTimerInterval);
+  roleTimerInterval=null;
+
+  currentMode="gameplay";
+  gameplayPlayers=d.players;
+  currentDisplayPlayers=d.players;
+  latestReadyStatuses=[];
+  currentTurnPlayerId=null;
+
+  showScreen("gameplayScreen");
   $("myInfoBox").classList.remove("hidden");
+
+  $("centerGamePanel").classList.add("hidden");
+  $("speakingInputWrap").classList.add("hidden");
+  $("shuffleMessage").classList.remove("hidden");
+  $("shuffleMessage").textContent="🎲 순서를 섞는 중...";
+
+  renderArena(d.players,true);
+  renderSide();
+
+  setTimeout(()=>{
+    settleArena(d.players);
+    $("shuffleMessage").textContent="✨ 발언 순서 결정!";
+  },1900);
+
+  setTimeout(()=>{
+    $("shuffleMessage").classList.add("hidden");
+  },2700);
+});
+
+function renderArena(list,shuffling=false){
+  const arena=$("arena");
+  arena.innerHTML="";
+
+  list.forEach((p,i)=>{
+    const bar=document.createElement("div");
+    bar.className="player-bar"+(p.nickname===myNickname?" me":"");
+    bar.id=`playerBar_${p.id}`;
+    bar.dataset.playerId=p.id;
+
+    const badge=document.createElement("span");
+    badge.className="turn-badge";
+    badge.textContent=`${i+1}번`;
+
+    const name=document.createElement("span");
+    name.textContent=p.nickname+(p.nickname===myNickname?" ★":"");
+
+    bar.appendChild(badge);
+    bar.appendChild(name);
+
+    arena.appendChild(bar);
+
+    if(shuffling){
+      bar.style.left=`${46+Math.random()*8}%`;
+      bar.style.top=`${43+Math.random()*14}%`;
+      bar.style.transform=`translate(-50%,-50%) rotate(${Math.random()*24-12}deg)`;
+    }
+  });
+
+  if(shuffling){
+    let hops=0;
+    const shuffleId=setInterval(()=>{
+      hops++;
+
+      list.forEach(p=>{
+        const bar=$(`playerBar_${p.id}`);
+        if(!bar)return;
+
+        bar.style.left=`${38+Math.random()*24}%`;
+        bar.style.top=`${34+Math.random()*32}%`;
+        bar.style.transform=`translate(-50%,-50%) rotate(${Math.random()*50-25}deg) scale(${.88+Math.random()*.2})`;
+      });
+
+      if(hops>=6){
+        clearInterval(shuffleId);
+      }
+    },260);
+  }
+}
+
+function settleArena(list){
+  const n=list.length;
+
+  list.forEach((p,i)=>{
+    const bar=$(`playerBar_${p.id}`);
+    if(!bar)return;
+
+    const angle=
+      -Math.PI/2+
+      (Math.PI*2*i/n);
+
+    const x=
+      50+
+      Math.cos(angle)*39;
+
+    const y=
+      50+
+      Math.sin(angle)*36;
+
+    bar.style.left=`${x}%`;
+    bar.style.top=`${y}%`;
+    bar.style.transform="translate(-50%,-50%)";
+  });
+}
+
+function updateCurrentBar(playerId){
+  document
+    .querySelectorAll(".player-bar")
+    .forEach(bar=>{
+      bar.classList.toggle(
+        "current",
+        bar.dataset.playerId===playerId
+      );
+    });
+}
+
+socket.on("gameRosterUpdate",d=>{
+  gameplayPlayers=d.players;
+  currentDisplayPlayers=d.players;
+
+  renderArena(d.players,false);
+  settleArena(d.players);
+  renderSide();
+});
+
+socket.on("turnStarted",d=>{
+  currentMode="gameplay";
+  currentTurnPlayerId=d.currentPlayer.id;
+
+  updateCurrentBar(d.currentPlayer.id);
+
+  $("centerGamePanel").classList.remove("hidden");
+  $("roundLabel").textContent=
+    `라운드 ${d.round} / ${d.totalRounds} · ${d.turnNumber} / ${d.playersInRound}`;
+
+  $("turnName").textContent=
+    `${d.currentPlayer.nickname}의 차례`;
+
+  if(d.selectedMode==="question"){
+    $("turnInstruction").textContent=
+      "아래 질문에 제시어를 직접 말하지 않고 답하세요.";
+
+    $("questionBox").textContent=
+      `❓ ${d.question}`;
+
+    $("questionBox").classList.remove("hidden");
+  }else if(d.selectedMode==="fool"){
+    $("turnInstruction").textContent=
+      "자신의 단어를 직접 말하지 않고 특징을 표현하세요.";
+
+    $("questionBox").classList.add("hidden");
+  }else{
+    $("turnInstruction").textContent=
+      "제시어를 직접 말하지 않고 힌트를 하나 입력하세요.";
+
+    $("questionBox").classList.add("hidden");
+  }
+
+  startTurnTimer(d.deadline);
+
+  const isMe=
+    d.currentPlayer.id===socket.id;
+
+  if(isMe){
+    $("speakingInputWrap").classList.remove("hidden");
+
+    $("inputPrompt").textContent=
+      d.selectedMode==="question"
+        ? "질문에 대한 답을 입력하세요."
+        : "이번 차례의 발언을 입력하세요.";
+
+    $("speakingInput").value="";
+    $("charCount").textContent="0 / 30";
+
+    setTimeout(
+      ()=>$("speakingInput").focus(),
+      100
+    );
+  }else{
+    $("speakingInputWrap").classList.add("hidden");
+  }
+});
+
+function startTurnTimer(deadline){
+  clearInterval(turnTimerInterval);
+
+  const tick=()=>{
+    const left=Math.max(
+      0,
+      Math.ceil((deadline-Date.now())/1000)
+    );
+
+    $("turnTimer").textContent=left;
+
+    if(left<=0){
+      clearInterval(turnTimerInterval);
+      turnTimerInterval=null;
+      $("speakingInputWrap").classList.add("hidden");
+    }
+  };
+
+  tick();
+  turnTimerInterval=setInterval(tick,200);
+}
+
+function submitSpeech(){
+  if(currentTurnPlayerId!==socket.id)return;
+
+  const input=$("speakingInput");
+  const text=input.value.trim();
+
+  if(!text){
+    toast("발언 내용을 입력해주세요.");
+    return;
+  }
+
+  if(text.length>30){
+    toast("최대 30자까지 입력할 수 있습니다.");
+    return;
+  }
+
+  $("speakingInputWrap").classList.add("hidden");
+
+  socket.emit("submitSpeech",text,res=>{
+    if(!res.success){
+      $("speakingInputWrap").classList.remove("hidden");
+      toast(res.message);
+    }
+  });
+}
+
+$("speakingInput").addEventListener("input",()=>{
+  $("charCount").textContent=
+    `${$("speakingInput").value.length} / 30`;
+});
+
+$("speakingInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    submitSpeech();
+  }
+});
+
+socket.on("speechBubble",d=>{
+  clearInterval(turnTimerInterval);
+  turnTimerInterval=null;
+
+  if(d.player.id===socket.id){
+    $("speakingInputWrap").classList.add("hidden");
+  }
+
+  const bar=$(`playerBar_${d.player.id}`);
+  if(!bar)return;
+
+  bar.querySelector(".speech-bubble")?.remove();
+
+  const bubble=document.createElement("div");
+  bubble.className=
+    "speech-bubble"+
+    (d.timedOut?" timeout":"");
+
+  bubble.textContent=d.text;
+
+  bar.appendChild(bubble);
+
+  if(bubbleTimers.has(d.player.id)){
+    clearTimeout(bubbleTimers.get(d.player.id));
+  }
+
+  bubbleTimers.set(
+    d.player.id,
+    setTimeout(()=>{
+      bubble.remove();
+      bubbleTimers.delete(d.player.id);
+    },4800)
+  );
+});
+
+socket.on("speakingStageFinished",d=>{
+  clearInterval(turnTimerInterval);
+  turnTimerInterval=null;
+
+  currentTurnPlayerId=null;
+  currentMode="speakingFinished";
+  currentDisplayPlayers=d.players;
+
+  $("speakingInputWrap").classList.add("hidden");
+  $("centerGamePanel").classList.add("hidden");
+
+  showScreen("speakingFinishedScreen");
   renderSide();
 });
 
 socket.on("roleStageRestarting",d=>{
   clearInterval(roleTimerInterval);roleTimerInterval=null;
+  clearInterval(turnTimerInterval);turnTimerInterval=null;
   toast(d.message);
   $("roleReadyButton").disabled=true;
   $("roleReadyButton").textContent="역할 다시 배정 중...";
@@ -594,6 +1124,7 @@ function leaveCurrentPlace(){
 function goBackToLobby(){
   currentMode="lobby";currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
   myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
+  gameplayPlayers=[];currentTurnPlayerId=null;clearInterval(turnTimerInterval);turnTimerInterval=null;
   hideMini();showScreen("mainScreen");renderSide();
 }
 
