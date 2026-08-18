@@ -85,7 +85,7 @@ function broadcastQueue(size){
 
 function clearTimers(r){
   if(!r)return;
-  for(const key of ["modeResultTimer","countdownTimer","readyTimer","restartTimer","turnTimer","shuffleTimer","nextTurnTimer"]){
+  for(const key of ["modeResultTimer","countdownTimer","readyTimer","restartTimer","turnTimer","shuffleTimer","nextTurnTimer","finalStatementTimer","voteNextTimer"]){
     if(r[key]){
       clearTimeout(r[key]);
       clearInterval(r[key]);
@@ -124,6 +124,17 @@ function removeFromCurrent(id){
     r.players.delete(id);
     r.modeVotes?.delete(id);
     r.readyPlayers?.delete(id);
+    r.liarVotes?.delete(id);
+
+    if(r.voteCandidates){
+      r.voteCandidates=
+        r.voteCandidates.filter(x=>x!==id);
+    }
+
+    if(r.finalStatementQueue){
+      r.finalStatementQueue=
+        r.finalStatementQueue.filter(x=>x!==id);
+    }
     if(["shuffle","turn","speakingFinished"].includes(r.state)){
       removeFromGameplayOrder(r,id);
     }
@@ -159,7 +170,9 @@ function tryMatch(size){
     liarId:null,wordSet:null,roleDeadline:null,
     modeResultTimer:null,countdownTimer:null,readyTimer:null,restartTimer:null,
     turnOrder:[],totalRounds:0,currentRound:0,turnIndex:0,currentTurnId:null,
-    currentQuestion:null,turnDeadline:null,turnTimer:null,shuffleTimer:null,nextTurnTimer:null
+    currentQuestion:null,turnDeadline:null,turnTimer:null,shuffleTimer:null,nextTurnTimer:null,
+    voteStage:0,voteCandidates:[],liarVotes:new Map(),finalStatementQueue:[],finalStatementIndex:0,
+    finalStatementCurrentId:null,finalStatementTimer:null,voteNextTimer:null
   };
   rooms.set(id,r);
 
@@ -433,6 +446,7 @@ function completeTurn(roomId,speakerId,text,timedOut=false){
   },1100);
 }
 
+
 function finishSpeakingStage(r){
   if(!r)return;
 
@@ -446,6 +460,241 @@ function finishSpeakingStage(r){
       .map(id=>players.get(id))
       .filter(Boolean)
       .map(pub)
+  });
+
+  r.voteNextTimer=setTimeout(()=>{
+    r.voteNextTimer=null;
+    startLiarVote(r,1,[...r.players]);
+  },1800);
+}
+
+function startLiarVote(r,stage,candidateIds){
+  if(!r)return;
+  if(r.players.size<4){abortIfTooSmall(r);return;}
+
+  const validCandidates=candidateIds
+    .filter(id=>r.players.has(id));
+
+  if(validCandidates.length===0)return;
+
+  r.state="liarVote";
+  r.voteStage=stage;
+  r.voteCandidates=validCandidates;
+  r.liarVotes=new Map();
+
+  io.to(r.id).emit("liarVoteStart",{
+    stage,
+    candidates:validCandidates
+      .map(id=>players.get(id))
+      .filter(Boolean)
+      .map(pub),
+    totalPlayers:r.players.size
+  });
+
+  broadcastLiarVoteProgress(r);
+}
+
+function broadcastLiarVoteProgress(r){
+  io.to(r.id).emit("liarVoteProgress",{
+    voted:r.liarVotes.size,
+    total:r.players.size,
+    stage:r.voteStage
+  });
+}
+
+function finishLiarVote(r){
+  if(!r||r.state!=="liarVote")return;
+
+  const counts=new Map();
+
+  r.voteCandidates.forEach(id=>{
+    counts.set(id,0);
+  });
+
+  for(const targetId of r.liarVotes.values()){
+    counts.set(
+      targetId,
+      (counts.get(targetId)||0)+1
+    );
+  }
+
+  const maxVotes=Math.max(...counts.values());
+
+  const tied=[...counts.entries()]
+    .filter(([,count])=>count===maxVotes)
+    .map(([id])=>id);
+
+  // 단독 1위
+  if(tied.length===1){
+    resolveLiarVote(r,tied[0]);
+    return;
+  }
+
+  // 1차 동점 -> 동점자만 재투표
+  if(r.voteStage===1){
+    io.to(r.id).emit("liarVoteTie",{
+      stage:1,
+      message:"동점입니다. 동점 후보만 대상으로 재투표합니다.",
+      candidates:tied
+        .map(id=>players.get(id))
+        .filter(Boolean)
+        .map(pub)
+    });
+
+    r.voteNextTimer=setTimeout(()=>{
+      r.voteNextTimer=null;
+      startLiarVote(r,2,tied);
+    },1800);
+
+    return;
+  }
+
+  // 2차 동점 -> 최후의 발언
+  if(r.voteStage===2){
+    startFinalStatements(r,tied);
+    return;
+  }
+
+  // 최후의 발언 후 재투표도 동점 -> 서버 랜덤
+  const chosen=
+    tied[
+      Math.floor(
+        Math.random()*tied.length
+      )
+    ];
+
+  io.to(r.id).emit("liarVoteRandomChoice",{
+    candidates:tied
+      .map(id=>players.get(id))
+      .filter(Boolean)
+      .map(pub),
+    chosen:pub(players.get(chosen))
+  });
+
+  r.voteNextTimer=setTimeout(()=>{
+    r.voteNextTimer=null;
+    resolveLiarVote(r,chosen);
+  },1800);
+}
+
+function startFinalStatements(r,candidateIds){
+  if(!r)return;
+
+  r.state="finalStatement";
+  r.finalStatementQueue=
+    candidateIds.filter(id=>r.players.has(id));
+  r.finalStatementIndex=0;
+
+  io.to(r.id).emit("finalStatementStageStart",{
+    candidates:r.finalStatementQueue
+      .map(id=>players.get(id))
+      .filter(Boolean)
+      .map(pub)
+  });
+
+  startNextFinalStatement(r);
+}
+
+function startNextFinalStatement(r){
+  if(!r||r.state!=="finalStatement")return;
+
+  if(r.finalStatementIndex>=r.finalStatementQueue.length){
+    r.finalStatementCurrentId=null;
+
+    r.voteNextTimer=setTimeout(()=>{
+      r.voteNextTimer=null;
+      startLiarVote(
+        r,
+        3,
+        r.finalStatementQueue
+      );
+    },1200);
+
+    return;
+  }
+
+  const id=
+    r.finalStatementQueue[
+      r.finalStatementIndex
+    ];
+
+  const p=players.get(id);
+
+  if(!p){
+    r.finalStatementIndex++;
+    startNextFinalStatement(r);
+    return;
+  }
+
+  r.finalStatementCurrentId=id;
+  r.turnDeadline=Date.now()+20000;
+
+  io.to(r.id).emit("finalStatementTurn",{
+    player:pub(p),
+    index:r.finalStatementIndex+1,
+    total:r.finalStatementQueue.length,
+    deadline:r.turnDeadline,
+    maxLength:30
+  });
+
+  r.finalStatementTimer=setTimeout(()=>{
+    completeFinalStatement(
+      r.id,
+      id,
+      "(시간 초과)",
+      true
+    );
+  },20000);
+}
+
+function completeFinalStatement(roomId,speakerId,text,timedOut=false){
+  const r=rooms.get(roomId);
+
+  if(
+    !r ||
+    r.state!=="finalStatement" ||
+    r.finalStatementCurrentId!==speakerId
+  ){
+    return;
+  }
+
+  if(r.finalStatementTimer){
+    clearTimeout(r.finalStatementTimer);
+    r.finalStatementTimer=null;
+  }
+
+  const p=players.get(speakerId);
+
+  if(p){
+    io.to(r.id).emit("finalStatementBubble",{
+      player:pub(p),
+      text,
+      timedOut
+    });
+  }
+
+  r.finalStatementCurrentId=null;
+  r.turnDeadline=null;
+  r.finalStatementIndex++;
+
+  r.voteNextTimer=setTimeout(()=>{
+    r.voteNextTimer=null;
+    startNextFinalStatement(r);
+  },1200);
+}
+
+function resolveLiarVote(r,targetId){
+  if(!r)return;
+
+  const target=players.get(targetId);
+
+  if(!target)return;
+
+  r.state="voteResolved";
+
+  io.to(r.id).emit("liarVoteResolved",{
+    target:pub(target),
+    caughtLiar:targetId===r.liarId
   });
 }
 
@@ -555,7 +804,9 @@ io.on("connection",socket=>{
         liarId:null,wordSet:null,roleDeadline:null,
         modeResultTimer:null,countdownTimer:null,readyTimer:null,restartTimer:null,
         turnOrder:[],totalRounds:0,currentRound:0,turnIndex:0,currentTurnId:null,
-        currentQuestion:null,turnDeadline:null,turnTimer:null,shuffleTimer:null,nextTurnTimer:null
+        currentQuestion:null,turnDeadline:null,turnTimer:null,shuffleTimer:null,nextTurnTimer:null,
+        voteStage:0,voteCandidates:[],liarVotes:new Map(),finalStatementQueue:[],finalStatementIndex:0,
+        finalStatementCurrentId:null,finalStatementTimer:null,voteNextTimer:null
       };
       rooms.set(id,r);
     }
@@ -671,6 +922,101 @@ io.on("connection",socket=>{
 
     cb?.({success:true});
     completeTurn(r.id,socket.id,text,false);
+  });
+
+
+  socket.on("voteLiar",(targetId,cb)=>{
+    const p=players.get(socket.id);
+    const r=p?.roomId?rooms.get(p.roomId):null;
+
+    if(!r||r.state!=="liarVote"){
+      return cb?.({
+        success:false,
+        message:"현재는 라이어 투표 시간이 아닙니다."
+      });
+    }
+
+    if(r.liarVotes.has(socket.id)){
+      return cb?.({
+        success:false,
+        message:"이미 투표했습니다."
+      });
+    }
+
+    if(targetId===socket.id){
+      return cb?.({
+        success:false,
+        message:"자기 자신에게는 투표할 수 없습니다."
+      });
+    }
+
+    if(!r.voteCandidates.includes(targetId)){
+      return cb?.({
+        success:false,
+        message:"선택할 수 없는 후보입니다."
+      });
+    }
+
+    if(!r.players.has(targetId)){
+      return cb?.({
+        success:false,
+        message:"해당 플레이어는 방에 없습니다."
+      });
+    }
+
+    r.liarVotes.set(
+      socket.id,
+      targetId
+    );
+
+    cb?.({success:true});
+
+    broadcastLiarVoteProgress(r);
+
+    if(r.liarVotes.size===r.players.size){
+      finishLiarVote(r);
+    }
+  });
+
+  socket.on("submitFinalStatement",(raw,cb)=>{
+    const p=players.get(socket.id);
+    const r=p?.roomId?rooms.get(p.roomId):null;
+
+    if(
+      !r ||
+      r.state!=="finalStatement" ||
+      r.finalStatementCurrentId!==socket.id
+    ){
+      return cb?.({
+        success:false,
+        message:"현재 당신의 최후 발언 차례가 아닙니다."
+      });
+    }
+
+    const text=String(raw||"").trim();
+
+    if(!text){
+      return cb?.({
+        success:false,
+        message:"내용을 입력해주세요."
+      });
+    }
+
+    if(text.length>30){
+      return cb?.({
+        success:false,
+        message:"최후 발언은 최대 30자까지 입력할 수 있습니다."
+      });
+    }
+
+    cb?.({success:true});
+
+    completeFinalStatement(
+      r.id,
+      socket.id,
+      text,
+      false
+    );
   });
 
   socket.on("disconnect",()=>{
