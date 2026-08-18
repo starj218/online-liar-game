@@ -253,6 +253,127 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
   font-size:clamp(30px,8vw,46px);
 }
 
+
+/* =====================================================
+   6단계: 라이어 투표
+===================================================== */
+
+.liar-vote-card{
+  width:min(94vw,760px);
+  padding:34px 28px 150px;
+  background:#222;
+  border:2px solid #444;
+  border-radius:30px;
+  text-align:center;
+  box-shadow:0 30px 90px rgba(0,0,0,.45);
+}
+
+.liar-vote-card h1{
+  margin:0 0 8px;
+  font-size:clamp(30px,7vw,46px);
+}
+
+.vote-candidate-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;
+  margin-top:24px;
+}
+
+.vote-candidate{
+  padding:17px 12px;
+  border-radius:17px;
+  background:#343434;
+  border:2px solid transparent;
+  color:white;
+  font-size:17px;
+  font-weight:900;
+  transition:.18s;
+}
+
+.vote-candidate:hover{
+  transform:translateY(-2px);
+  border-color:#8e96ff;
+}
+
+.vote-candidate.selected{
+  background:#41477f;
+  border-color:#aeb5ff;
+}
+
+.vote-candidate:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.vote-progress-large{
+  margin-top:24px;
+  font-size:21px;
+  font-weight:1000;
+}
+
+.tie-stage-card,
+.vote-resolved-card{
+  width:min(92vw,620px);
+  padding:42px 28px 150px;
+  background:#222;
+  border:2px solid #444;
+  border-radius:30px;
+  text-align:center;
+}
+
+.tie-candidates{
+  margin:20px 0;
+  color:#ffcf70;
+  font-size:21px;
+  font-weight:900;
+}
+
+.final-statement-input{
+  position:fixed;
+  z-index:190;
+  left:50%;
+  bottom:26px;
+  transform:translateX(-50%);
+  width:min(92vw,540px);
+  padding:15px;
+  border-radius:20px;
+  background:rgba(18,18,18,.96);
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(12px);
+}
+
+.final-statement-row{
+  display:flex;
+  gap:8px;
+}
+
+.final-statement-row input{
+  flex:1;
+  min-width:0;
+  padding:13px;
+  border-radius:14px;
+  border:2px solid #555;
+  font-size:16px;
+  outline:none;
+}
+
+.final-statement-row button{
+  padding:0 16px;
+  border-radius:14px;
+  background:#c14c4c;
+  color:white;
+  font-weight:900;
+}
+
+.final-statement-count{
+  text-align:right;
+  color:#aaa;
+  font-size:12px;
+  margin-top:6px;
+}
+
 @media(max-width:700px){.mode-grid{grid-template-columns:1fr}.mode{min-height:185px}.size-grid{grid-template-columns:repeat(3,1fr)}.card{padding-bottom:185px}.side,.mini{width:145px;bottom:8px}.side{right:8px}.mini{left:8px}}
 </style>
 </head>
@@ -468,13 +589,15 @@ let gameplayPlayers=[];
 let turnTimerInterval=null;
 let bubbleTimers=new Map();
 let currentTurnPlayerId=null;
+let myLiarVote=null;
+let finalStatementTimerInterval=null;
 let toastTimer=null;
 
 const $=id=>document.getElementById(id);
 const modeName=m=>m==="basic"?"① 기본형":m==="question"?"② 질문형":m==="fool"?"③ 바보형":m;
 
 function showScreen(id){
-  ["nicknameScreen","mainScreen","waitingScreen","modeVoteScreen","modeResultScreen","countdownScreen","roleStageScreen","gameplayScreen","speakingFinishedScreen"]
+  ["nicknameScreen","mainScreen","waitingScreen","modeVoteScreen","modeResultScreen","countdownScreen","roleStageScreen","gameplayScreen","speakingFinishedScreen","liarVoteScreen","tieStageScreen","finalStatementScreen","voteResolvedScreen"]
     .forEach(x=>$(x).classList.add("hidden"));
   $(id).classList.remove("hidden");
 }
@@ -1063,9 +1186,248 @@ socket.on("speakingStageFinished",d=>{
   renderSide();
 });
 
+socket.on("liarVoteStart",d=>{
+  currentMode="liarVote";
+  myLiarVote=null;
+
+  showScreen("liarVoteScreen");
+
+  $("liarVoteSubtitle").textContent=
+    d.stage===1
+      ? "라이어라고 생각하는 사람을 선택하세요."
+      : d.stage===2
+        ? "동점 후보만 대상으로 다시 투표합니다."
+        : "최후의 발언을 들었습니다. 마지막으로 투표하세요.";
+
+  $("liarVoteProgress").textContent=
+    `투표 완료 0 / ${d.totalPlayers}`;
+
+  $("liarVoteMessage").textContent=
+    "다른 사람의 선택은 공개되지 않습니다.";
+
+  renderVoteCandidates(d.candidates);
+  renderSide();
+});
+
+function renderVoteCandidates(candidates){
+  const grid=$("voteCandidateGrid");
+  grid.innerHTML="";
+
+  candidates.forEach(p=>{
+    const button=document.createElement("button");
+    button.className="vote-candidate";
+    button.textContent=p.nickname;
+
+    if(p.id===socket.id){
+      button.disabled=true;
+      button.textContent+= " (나)";
+    }else{
+      button.onclick=()=>voteLiar(p.id,button);
+    }
+
+    grid.appendChild(button);
+  });
+}
+
+function voteLiar(targetId,button){
+  if(myLiarVote)return;
+
+  socket.emit("voteLiar",targetId,res=>{
+    if(!res.success){
+      toast(res.message);
+      return;
+    }
+
+    myLiarVote=targetId;
+
+    document
+      .querySelectorAll(".vote-candidate")
+      .forEach(btn=>{
+        btn.disabled=true;
+      });
+
+    button.classList.add("selected");
+
+    $("liarVoteMessage").textContent=
+      "✓ 투표 완료! 다른 플레이어를 기다리는 중...";
+  });
+}
+
+socket.on("liarVoteProgress",d=>{
+  $("liarVoteProgress").textContent=
+    `투표 완료 ${d.voted} / ${d.total}`;
+});
+
+socket.on("liarVoteTie",d=>{
+  currentMode="voteTie";
+
+  showScreen("tieStageScreen");
+
+  $("tieStageTitle").textContent=
+    "⚖️ 동점!";
+
+  $("tieStageMessage").textContent=
+    d.message;
+
+  $("tieCandidateNames").textContent=
+    d.candidates
+      .map(p=>p.nickname)
+      .join(" · ");
+});
+
+socket.on("finalStatementStageStart",d=>{
+  currentMode="finalStatement";
+
+  showScreen("finalStatementScreen");
+
+  $("finalStatementName").textContent=
+    "후보들의 최후 발언을 시작합니다.";
+
+  $("finalStatementOrder").textContent=
+    d.candidates
+      .map(p=>p.nickname)
+      .join(" → ");
+
+  $("finalStatementInputWrap").classList.add("hidden");
+});
+
+socket.on("finalStatementTurn",d=>{
+  currentMode="finalStatement";
+
+  showScreen("finalStatementScreen");
+
+  $("finalStatementOrder").textContent=
+    `후보 ${d.index} / ${d.total}`;
+
+  $("finalStatementName").textContent=
+    `${d.player.nickname}의 최후 발언`;
+
+  startFinalStatementTimer(d.deadline);
+
+  if(d.player.id===socket.id){
+    $("finalStatementInputWrap").classList.remove("hidden");
+    $("finalStatementInput").value="";
+    $("finalStatementCount").textContent="0 / 30";
+
+    setTimeout(
+      ()=>$("finalStatementInput").focus(),
+      100
+    );
+  }else{
+    $("finalStatementInputWrap").classList.add("hidden");
+  }
+});
+
+function startFinalStatementTimer(deadline){
+  clearInterval(finalStatementTimerInterval);
+
+  const tick=()=>{
+    const left=Math.max(
+      0,
+      Math.ceil((deadline-Date.now())/1000)
+    );
+
+    $("finalStatementTimer").textContent=left;
+
+    if(left<=0){
+      clearInterval(finalStatementTimerInterval);
+      finalStatementTimerInterval=null;
+      $("finalStatementInputWrap").classList.add("hidden");
+    }
+  };
+
+  tick();
+
+  finalStatementTimerInterval=
+    setInterval(tick,200);
+}
+
+function submitFinalStatement(){
+  const text=
+    $("finalStatementInput")
+      .value
+      .trim();
+
+  if(!text){
+    toast("최후 발언을 입력해주세요.");
+    return;
+  }
+
+  $("finalStatementInputWrap").classList.add("hidden");
+
+  socket.emit(
+    "submitFinalStatement",
+    text,
+    res=>{
+      if(!res.success){
+        $("finalStatementInputWrap").classList.remove("hidden");
+        toast(res.message);
+      }
+    }
+  );
+}
+
+$("finalStatementInput").addEventListener("input",()=>{
+  $("finalStatementCount").textContent=
+    `${$("finalStatementInput").value.length} / 30`;
+});
+
+$("finalStatementInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    submitFinalStatement();
+  }
+});
+
+socket.on("finalStatementBubble",d=>{
+  clearInterval(finalStatementTimerInterval);
+  finalStatementTimerInterval=null;
+
+  $("finalStatementInputWrap").classList.add("hidden");
+
+  $("finalStatementName").textContent=
+    `${d.player.nickname}: ${d.text}`;
+});
+
+socket.on("liarVoteRandomChoice",d=>{
+  currentMode="voteRandom";
+
+  showScreen("tieStageScreen");
+
+  $("tieStageTitle").textContent=
+    "🎲 최종 동점";
+
+  $("tieStageMessage").textContent=
+    "마지막 투표도 동점이어서 서버가 무작위로 한 명을 선택했습니다.";
+
+  $("tieCandidateNames").textContent=
+    `선택: ${d.chosen.nickname}`;
+});
+
+socket.on("liarVoteResolved",d=>{
+  clearInterval(finalStatementTimerInterval);
+  finalStatementTimerInterval=null;
+
+  currentMode="voteResolved";
+
+  showScreen("voteResolvedScreen");
+
+  $("resolvedPlayerName").textContent=
+    `${d.target.nickname} 지목`;
+
+  if(d.caughtLiar){
+    $("resolvedResultText").innerHTML=
+      "🎭 <b>라이어를 찾아냈습니다!</b><br><br>다음 단계에서 라이어에게 20초 동안 시민 제시어를 맞힐 마지막 기회를 줍니다.";
+  }else{
+    $("resolvedResultText").innerHTML=
+      "❌ <b>시민을 지목했습니다.</b><br><br>다음 단계에서 라이어 승리 결과 화면으로 연결됩니다.";
+  }
+});
+
 socket.on("roleStageRestarting",d=>{
   clearInterval(roleTimerInterval);roleTimerInterval=null;
   clearInterval(turnTimerInterval);turnTimerInterval=null;
+  clearInterval(finalStatementTimerInterval);finalStatementTimerInterval=null;
   toast(d.message);
   $("roleReadyButton").disabled=true;
   $("roleReadyButton").textContent="역할 다시 배정 중...";
@@ -1124,7 +1486,9 @@ function leaveCurrentPlace(){
 function goBackToLobby(){
   currentMode="lobby";currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
   myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
-  gameplayPlayers=[];currentTurnPlayerId=null;clearInterval(turnTimerInterval);turnTimerInterval=null;
+  gameplayPlayers=[];currentTurnPlayerId=null;myLiarVote=null;
+  clearInterval(turnTimerInterval);turnTimerInterval=null;
+  clearInterval(finalStatementTimerInterval);finalStatementTimerInterval=null;
   hideMini();showScreen("mainScreen");renderSide();
 }
 
