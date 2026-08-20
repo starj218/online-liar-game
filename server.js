@@ -415,7 +415,7 @@ function startTurn(roomId){
   // 남아 있는 플레이어만 순서에 유지
   r.turnOrder=r.turnOrder.filter(id=>r.players.has(id));
 
-  if(r.turnOrder.length<4){
+  if(r.turnOrder.length<3){
     abortIfTooSmall(r);
     return;
   }
@@ -447,7 +447,7 @@ function startTurn(roomId){
   r.currentTurnId=currentId;
   r.turnDeadline=Date.now()+20000;
 
-  io.to(r.id).emit("turnStarted",{
+  const turnPayload={
     currentPlayer:pub(currentPlayer),
     round:r.currentRound,
     totalRounds:r.totalRounds,
@@ -457,7 +457,18 @@ function startTurn(roomId){
     question:r.selectedMode==="question"?r.currentQuestion:null,
     deadline:r.turnDeadline,
     maxLength:30
-  });
+  };
+
+  io.to(r.id).emit(
+    "turnStarted",
+    turnPayload
+  );
+
+  // 현재 발언자에게 입력창 표시를 별도 이벤트로 한 번 더 보장
+  io.to(currentId).emit(
+    "yourTurn",
+    turnPayload
+  );
 
   r.turnTimer=setTimeout(()=>{
     completeTurn(r.id,currentId,"(시간 초과)",true);
