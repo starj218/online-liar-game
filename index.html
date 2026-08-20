@@ -1028,6 +1028,8 @@ let gameplayPlayers=[];
 let turnTimerInterval=null;
 let bubbleTimers=new Map();
 let currentTurnPlayerId=null;
+let currentTurnPlayerNickname="";
+let myTurnActive=false;
 let arenaShuffleInterval=null;
 let arenaSettleTimer=null;
 let arenaMessageTimer=null;
@@ -1355,6 +1357,8 @@ socket.on("gameplaySetup",d=>{
   currentDisplayPlayers=d.players;
   latestReadyStatuses=[];
   currentTurnPlayerId=null;
+  currentTurnPlayerNickname="";
+  myTurnActive=false;
 
   resetGameHistory();
 
@@ -1558,6 +1562,7 @@ socket.on("turnStarted",d=>{
   currentMode="gameplay";
   showStatsUI();
   currentTurnPlayerId=d.currentPlayer.id;
+  currentTurnPlayerNickname=d.currentPlayer.nickname;
 
   // 서버의 실제 첫 턴 이벤트를 최종 기준으로 사용한다.
   // 클라이언트 애니메이션 타이머가 지연됐더라도 여기서 즉시 풀어준다.
@@ -1597,7 +1602,10 @@ socket.on("turnStarted",d=>{
   startTurnTimer(d.deadline);
 
   const isMe=
-    d.currentPlayer.id===socket.id;
+    d.currentPlayer.id===socket.id ||
+    d.currentPlayer.nickname===myNickname;
+
+  myTurnActive=isMe;
 
   if(isMe){
     $("speakingInputWrap").classList.remove("hidden");
@@ -1619,6 +1627,30 @@ socket.on("turnStarted",d=>{
   }
 });
 
+
+socket.on("yourTurn",d=>{
+  currentTurnPlayerId=d.currentPlayer.id;
+  currentTurnPlayerNickname=d.currentPlayer.nickname;
+  myTurnActive=true;
+
+  // 순서 재정렬이나 화면 갱신으로 입력창이 사라졌더라도 복구
+  $("speakingInputWrap").classList.remove("hidden");
+
+  $("inputPrompt").textContent=
+    d.selectedMode==="question"
+      ? "질문에 대한 답을 입력하세요."
+      : "이번 차례의 발언을 입력하세요.";
+
+  if(
+    document.activeElement!==$("speakingInput")
+  ){
+    setTimeout(
+      ()=>$("speakingInput").focus(),
+      80
+    );
+  }
+});
+
 function startTurnTimer(deadline){
   clearInterval(turnTimerInterval);
 
@@ -1633,6 +1665,7 @@ function startTurnTimer(deadline){
     if(left<=0){
       clearInterval(turnTimerInterval);
       turnTimerInterval=null;
+      myTurnActive=false;
       $("speakingInputWrap").classList.add("hidden");
     }
   };
@@ -1642,7 +1675,10 @@ function startTurnTimer(deadline){
 }
 
 function submitSpeech(){
-  if(currentTurnPlayerId!==socket.id)return;
+  if(!myTurnActive){
+    toast("현재 당신의 발언 차례가 아닙니다.");
+    return;
+  }
 
   const input=$("speakingInput");
   const text=input.value.trim();
@@ -1683,7 +1719,11 @@ socket.on("speechBubble",d=>{
   clearInterval(turnTimerInterval);
   turnTimerInterval=null;
 
-  if(d.player.id===socket.id){
+  if(
+    d.player.id===socket.id ||
+    d.player.nickname===myNickname
+  ){
+    myTurnActive=false;
     $("speakingInputWrap").classList.add("hidden");
   }
 
@@ -1721,6 +1761,8 @@ socket.on("speakingStageFinished",d=>{
   turnTimerInterval=null;
 
   currentTurnPlayerId=null;
+  currentTurnPlayerNickname="";
+  myTurnActive=false;
   currentMode="speakingFinished";
   currentDisplayPlayers=d.players;
 
