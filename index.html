@@ -467,6 +467,22 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
 }
 
 
+
+/* =====================================================
+   이번 방 누적 전적
+===================================================== */
+.session-stats-box{
+  position:fixed;z-index:156;top:16px;left:16px;width:225px;padding:14px;
+  border:1px solid rgba(255,255,255,.17);border-radius:18px;
+  background:rgba(8,8,8,.80);backdrop-filter:blur(10px);
+  box-shadow:0 12px 38px rgba(0,0,0,.35);
+}
+.session-stats-title{margin-bottom:10px;font-size:14px;font-weight:1000;color:#e8e8e8;}
+.session-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.session-stat{padding:9px 8px;border-radius:12px;background:#232323;color:#ccc;font-size:12px;line-height:1.4;}
+.session-stat b{display:block;margin-top:2px;font-size:19px;color:#b8beff;}
+@media(max-width:700px){.session-stats-box{top:8px;left:8px;width:172px;}}
+
 /* =====================================================
    게임 발언 기록
 ===================================================== */
@@ -729,11 +745,11 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
     <div class="title" style="font-size:30px">랜덤 매칭</div>
     <div class="sub">원하는 플레이 인원수를 선택하세요.</div>
     <div class="size-grid">
+      <button class="size" onclick="startMatchmaking(3)">3인</button>
       <button class="size" onclick="startMatchmaking(4)">4인</button>
       <button class="size" onclick="startMatchmaking(5)">5인</button>
       <button class="size" onclick="startMatchmaking(6)">6인</button>
       <button class="size" onclick="startMatchmaking(7)">7인</button>
-      <button class="size" onclick="startMatchmaking(8)">8인</button>
     </div>
     <button class="secondary" style="width:100%;margin-top:18px" onclick="closeMatchModal()">취소</button>
   </div>
@@ -953,6 +969,17 @@ button,input{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!im
 </section>
 
 
+
+<div id="sessionStatsBox" class="session-stats-box hidden">
+  <div class="session-stats-title">📊 이번 방 전적</div>
+  <div class="session-stats-grid">
+    <div class="session-stat">라이어<b id="statLiarGames">0회</b></div>
+    <div class="session-stat">시민<b id="statCitizenGames">0회</b></div>
+    <div class="session-stat">라이어 승리<b id="statLiarWins">0회</b></div>
+    <div class="session-stat">시민 승리<b id="statCitizenWins">0회</b></div>
+  </div>
+</div>
+
 <div id="gameHistoryBox" class="game-history-box hidden">
   <div class="game-history-header">
     📜 발언 기록
@@ -1010,6 +1037,7 @@ let myLiarVote=null;
 let finalStatementTimerInterval=null;
 let guessTimerInterval=null;
 let rematchTimerInterval=null;
+let sessionStats={liarGames:0,citizenGames:0,liarWins:0,citizenWins:0};
 let toastTimer=null;
 
 const $=id=>document.getElementById(id);
@@ -1064,10 +1092,11 @@ function joinCodeRoom(){
     if(!res.success){$("roomError").textContent=res.message;return;}
     closeRoomModal();
     currentMode="codeRoom";
+    showStatsUI();
     currentTargetSize=null;
     showScreen("waitingScreen");
     $("waitingTitle").textContent="방 대기실";
-    $("waitingSubtitle").textContent="4명 이상 모이면 누구나 게임을 시작할 수 있습니다.";
+    $("waitingSubtitle").textContent="3명 이상 모이면 누구나 게임을 시작할 수 있습니다.";
     $("roomCodeDisplay").textContent=res.code;
     $("roomCodeDisplay").classList.remove("hidden");
     $("startGameButton").classList.remove("hidden");
@@ -1102,6 +1131,7 @@ socket.on("matchmakingUpdate",data=>{
 
 socket.on("randomMatched",data=>{
   currentMode="matchedRoom";
+  showStatsUI();
   currentRoom=data;
   currentDisplayPlayers=data.players;
   showScreen("waitingScreen");
@@ -1121,7 +1151,7 @@ socket.on("roomUpdate",room=>{
 
   if(room.type==="code"&&room.state==="waiting"){
     currentMode="codeRoom";
-    $("bigCount").textContent=`${room.count} / 8`;
+    $("bigCount").textContent=`${room.count} / 7`;
     const b=$("startGameButton");
     b.classList.remove("hidden");
     b.disabled=!room.canStart;
@@ -1153,6 +1183,7 @@ function requestGameStart(){
 
 socket.on("modeVoteStart",data=>{
   currentMode="modeVote";
+  showStatsUI();
   myGameModeVote=null;
   myRoleInfo=null;
   hideMini();
@@ -1223,6 +1254,7 @@ function updateCountdown(sec){
 
 socket.on("privateRoleInfo",data=>{
   currentMode="roleReady";
+  showStatsUI();
   myRoleInfo=data;
   selectedGameMode=data.mode;
   latestReadyStatuses=[];
@@ -1318,6 +1350,7 @@ socket.on("gameplaySetup",d=>{
   clearArenaShuffle();
 
   currentMode="gameplay";
+  showStatsUI();
   gameplayPlayers=d.players;
   currentDisplayPlayers=d.players;
   latestReadyStatuses=[];
@@ -1523,6 +1556,7 @@ socket.on("gameRosterUpdate",d=>{
 
 socket.on("turnStarted",d=>{
   currentMode="gameplay";
+  showStatsUI();
   currentTurnPlayerId=d.currentPlayer.id;
 
   // 서버의 실제 첫 턴 이벤트를 최종 기준으로 사용한다.
@@ -1699,6 +1733,7 @@ socket.on("speakingStageFinished",d=>{
 
 socket.on("liarVoteStart",d=>{
   currentMode="liarVote";
+  showStatsUI();
   myLiarVote=null;
 
   showScreen("liarVoteScreen");
@@ -1788,6 +1823,7 @@ socket.on("liarVoteTie",d=>{
 
 socket.on("finalStatementStageStart",d=>{
   currentMode="finalStatement";
+  showStatsUI();
 
   showScreen("finalStatementScreen");
 
@@ -1804,6 +1840,7 @@ socket.on("finalStatementStageStart",d=>{
 
 socket.on("finalStatementTurn",d=>{
   currentMode="finalStatement";
+  showStatsUI();
 
   showScreen("finalStatementScreen");
 
@@ -1938,6 +1975,7 @@ socket.on("liarVoteResolved",d=>{
 
 socket.on("liarGuessStart",d=>{
   currentMode="liarGuess";
+  showStatsUI();
 
   showScreen("liarGuessScreen");
 
@@ -2028,6 +2066,7 @@ socket.on("gameResult",d=>{
   finalStatementTimerInterval=null;
 
   currentMode="result";
+  showStatsUI();
 
   showScreen("finalResultScreen");
   $("gameHistoryBox").classList.add("hidden");
@@ -2186,6 +2225,7 @@ socket.on("roomAborted",d=>{
   currentRoom=null;currentTargetSize=null;currentDisplayPlayers=[];
   currentMode="lobby";myGameModeVote=null;selectedGameMode=null;myRoleInfo=null;latestReadyStatuses=[];
   hideMini();
+  resetStatsUI();
   $("gameHistoryBox").classList.add("hidden");
   setTimeout(()=>{showScreen("mainScreen");renderSide();},1000);
 });
@@ -2205,8 +2245,33 @@ function goBackToLobby(){
   clearInterval(turnTimerInterval);turnTimerInterval=null;
   clearInterval(finalStatementTimerInterval);finalStatementTimerInterval=null;
   hideMini();
+  resetStatsUI();
   clearArenaShuffle();
   $("gameHistoryBox").classList.add("hidden");showScreen("mainScreen");renderSide();
+}
+
+
+socket.on("sessionStatsUpdate",stats=>{
+  sessionStats=stats;
+  $("statLiarGames").textContent=`${stats.liarGames}회`;
+  $("statCitizenGames").textContent=`${stats.citizenGames}회`;
+  $("statLiarWins").textContent=`${stats.liarWins}회`;
+  $("statCitizenWins").textContent=`${stats.citizenWins}회`;
+  const show=currentMode!=="lobby"&&currentMode!=="matchmaking";
+  $("sessionStatsBox").classList.toggle("hidden",!show);
+});
+
+function resetStatsUI(){
+  sessionStats={liarGames:0,citizenGames:0,liarWins:0,citizenWins:0};
+  $("statLiarGames").textContent="0회";
+  $("statCitizenGames").textContent="0회";
+  $("statLiarWins").textContent="0회";
+  $("statCitizenWins").textContent="0회";
+  $("sessionStatsBox").classList.add("hidden");
+}
+
+function showStatsUI(){
+  $("sessionStatsBox").classList.remove("hidden");
 }
 
 socket.on("onlinePlayerList",list=>{onlinePlayers=list;renderSide();});
